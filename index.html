@@ -72,16 +72,28 @@
     <!-- CONTEÚDO PRINCIPAL -->
     <main class="flex-1 p-6 md:p-10 overflow-y-auto">
       
-      <!-- CONTROLES E FILTROS DE PERÍODO -->
+      <!-- CONTROLES E FILTROS -->
       <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-8 flex flex-wrap items-center justify-between gap-4">
         <h2 class="text-xl font-bold text-slate-800" id="page-title">Dashboard</h2>
         
         <div class="flex items-center gap-3 flex-wrap">
+          <!-- Filtro de Aluno -->
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-semibold text-slate-500 uppercase">Aluno:</span>
+            <select id="filter-aluno-id" class="px-3 py-1.5 text-sm rounded-lg border border-slate-200 outline-none max-w-[180px]">
+              <option value="">Todos os Alunos</option>
+            </select>
+          </div>
+
+          <span class="text-slate-300">|</span>
+
           <label class="flex items-center gap-2 text-sm font-medium text-slate-600 cursor-pointer">
             <input type="checkbox" id="chk-ver-todas" onchange="toggleFiltroDatas()" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
             <span>Ver todas as datas</span>
           </label>
+          
           <span class="text-slate-300">|</span>
+
           <span class="text-xs font-semibold text-slate-500 uppercase">Período:</span>
           <input type="date" id="filter-start-date" class="px-3 py-1.5 text-sm rounded-lg border border-slate-200 outline-none">
           <span class="text-slate-400">até</span>
@@ -92,11 +104,11 @@
 
       <!-- ABA: DASHBOARD -->
       <div id="tab-dashboard" class="tab-content space-y-6">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
             <div class="flex justify-between items-center text-slate-500 mb-2">
               <span class="text-sm font-medium">Aulas Realizadas</span>
-              <i data-lucide="check-circle" class="w-5 h-5 text-emerald-500"></i>
+              <i data-lucide="check-circle" class="w-5 h-5 text-indigo-500"></i>
             </div>
             <div class="text-3xl font-extrabold text-slate-900" id="dash-total-aulas">0</div>
           </div>
@@ -111,10 +123,18 @@
 
           <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
             <div class="flex justify-between items-center text-slate-500 mb-2">
-              <span class="text-sm font-medium">Faturamento Estimado</span>
+              <span class="text-sm font-medium">Recebido (Pago)</span>
               <i data-lucide="dollar-sign" class="w-5 h-5 text-emerald-500"></i>
             </div>
-            <div class="text-3xl font-extrabold text-emerald-600" id="dash-faturamento">R$ 0,00</div>
+            <div class="text-3xl font-extrabold text-emerald-600" id="dash-pago">R$ 0,00</div>
+          </div>
+
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+            <div class="flex justify-between items-center text-slate-500 mb-2">
+              <span class="text-sm font-medium">Falta Receber</span>
+              <i data-lucide="alert-circle" class="w-5 h-5 text-amber-500"></i>
+            </div>
+            <div class="text-3xl font-extrabold text-amber-600" id="dash-pendente">R$ 0,00</div>
           </div>
         </div>
       </div>
@@ -194,6 +214,7 @@
                 <th class="p-4">Conteúdo / Descrição</th>
                 <th class="p-4 text-center">Carga Horária</th>
                 <th class="p-4 text-right">Valor Calc.</th>
+                <th class="p-4 text-center">Status Pagamento</th>
               </tr>
             </thead>
             <tbody id="table-aulas-body" class="divide-y divide-slate-100 text-sm"></tbody>
@@ -204,6 +225,46 @@
     </main>
   </div>
 
+  <!-- MODAL DE DETALHAMENTO / QUITAÇÃO DE PAGAMENTO -->
+  <div id="modal-pagamento" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="font-bold text-slate-800" id="modal-pagamento-titulo">Informações de Pagamento</h3>
+        <button onclick="fecharModalPagamento()" class="text-slate-400 hover:text-slate-600">&times;</button>
+      </div>
+
+      <input type="hidden" id="modal-aula-id">
+
+      <!-- VISÃO: QUITAR PAGAMENTO -->
+      <div id="view-quitar-pagamento" class="space-y-4 hidden">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Forma de Pagamento</label>
+          <select id="modal-forma-pagamento" class="w-full px-3 py-2 border rounded-lg outline-none">
+            <option value="Pix">Pix</option>
+            <option value="Cartão de Crédito">Cartão de Crédito</option>
+            <option value="Cartão de Débito">Cartão de Débito</option>
+            <option value="Dinheiro / Espécie">Dinheiro / Espécie</option>
+            <option value="Transferência Bancária">Transferência Bancária</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Data do Recebimento</label>
+          <input type="date" id="modal-data-pagamento" class="w-full px-3 py-2 border rounded-lg outline-none">
+        </div>
+        <button onclick="confirmarPagamento()" class="w-full bg-emerald-600 text-white font-medium py-2.5 rounded-lg hover:bg-emerald-700 transition">Marcar como Pago</button>
+      </div>
+
+      <!-- VISÃO: DETALHES DE AULA PAGA -->
+      <div id="view-detalhe-pagamento" class="space-y-3 hidden">
+        <div class="bg-emerald-50 text-emerald-800 p-3 rounded-lg text-sm border border-emerald-100">
+          <p><strong>Forma:</strong> <span id="info-forma-pagamento"></span></p>
+          <p><strong>Data de Pago:</strong> <span id="info-data-pagamento"></span></p>
+        </div>
+        <button onclick="marcarComoPendente()" class="w-full text-rose-600 hover:bg-rose-50 border border-rose-200 font-medium py-2 rounded-lg text-xs transition">Estornar (Marcar como Pendente)</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const SUPABASE_URL = "https://mefoheotylglspivixgq.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1lZm9oZW90eWxnbHNwaXZpeGdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg0NTcxMzEsImV4cCI6MjEwNDAzMzEzMX0.BW98Z_5QSTJ13P-NfaHeqB51lq-iyfgTwKaSgrFxym8";
@@ -212,6 +273,7 @@
 
     let currentUser = null;
     let listaAlunosCache = [];
+    let listaAulasCache = [];
 
     document.addEventListener('DOMContentLoaded', async () => {
       lucide.createIcons();
@@ -225,6 +287,7 @@
       const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
       document.getElementById('filter-start-date').value = firstDay;
       document.getElementById('filter-end-date').value = lastDay;
+      document.getElementById('modal-data-pagamento').value = now.toISOString().split('T')[0];
     }
 
     function toggleFiltroDatas() {
@@ -299,60 +362,70 @@
       const verTodas = document.getElementById('chk-ver-todas').checked;
       const startDate = document.getElementById('filter-start-date').value;
       const endDate = document.getElementById('filter-end-date').value + "T23:59:59";
+      const filterAlunoId = document.getElementById('filter-aluno-id').value;
 
       const { data: alunos, error: errAlunos } = await _supabase
         .from('alunos')
         .select('*')
         .order('nome');
 
-      if (errAlunos) {
-        console.error("Erro ao carregar alunos:", errAlunos);
-      }
+      if (errAlunos) console.error("Erro ao carregar alunos:", errAlunos);
 
       listaAlunosCache = alunos || [];
       renderAlunos(listaAlunosCache);
       populateAlunoSelects(listaAlunosCache);
 
       let queryAulas = _supabase.from('aulas').select('*, alunos(nome)');
+      
       if (!verTodas) {
         queryAulas = queryAulas.gte('data_aula', startDate).lte('data_aula', endDate);
       }
-      
-      const { data: aulas, error: errAulas } = await queryAulas.order('data_aula', { ascending: false });
-
-      if (errAulas) {
-        console.error("Erro ao carregar aulas:", errAulas);
+      if (filterAlunoId) {
+        queryAulas = queryAulas.eq('aluno_id', filterAlunoId);
       }
 
-      renderAulas(aulas || []);
+      const { data: aulas, error: errAulas } = await queryAulas.order('data_aula', { ascending: false });
 
-      let totalAulas = aulas ? aulas.length : 0;
+      if (errAulas) console.error("Erro ao carregar aulas:", errAulas);
+
+      listaAulasCache = aulas || [];
+      renderAulas(listaAulasCache);
+
+      let totalAulas = listaAulasCache.length;
       let totalHoras = 0;
-      let totalFaturamento = 0;
+      let totalPago = 0;
+      let totalPendente = 0;
 
-      (aulas || []).forEach(a => {
+      listaAulasCache.forEach(a => {
         const h = Number(a.horas || 1);
         const v = Number(a.valor_hora || 0);
         const isPacote = a.is_pacote || false;
+        const total = isPacote ? v : (h * v);
 
-        if (isPacote) {
-          totalFaturamento += v;
+        if (!isPacote) totalHoras += h;
+
+        if (a.status_pagamento === 'pago') {
+          totalPago += total;
         } else {
-          totalHoras += h;
-          totalFaturamento += (h * v);
+          totalPendente += total;
         }
       });
 
       document.getElementById('dash-total-aulas').innerText = totalAulas;
       document.getElementById('dash-total-horas').innerText = `${totalHoras}h`;
-      document.getElementById('dash-faturamento').innerText = `R$ ${totalFaturamento.toFixed(2)}`;
+      document.getElementById('dash-pago').innerText = `R$ ${totalPago.toFixed(2)}`;
+      document.getElementById('dash-pendente').innerText = `R$ ${totalPendente.toFixed(2)}`;
       
       lucide.createIcons();
     }
 
     function populateAlunoSelects(alunos) {
+      const selectedFilter = document.getElementById('filter-aluno-id').value;
       const options = alunos.map(a => `<option value="${a.id}">${a.nome}</option>`).join('');
+      
       document.getElementById('aula-aluno-id').innerHTML = '<option value="">Selecione o Aluno</option>' + options;
+      document.getElementById('filter-aluno-id').innerHTML = '<option value="">Todos os Alunos</option>' + options;
+      document.getElementById('filter-aluno-id').value = selectedFilter;
     }
 
     function aoSelecionarAluno(alunoId) {
@@ -391,14 +464,12 @@
       const valor_hora = Number(document.getElementById('aluno-valor').value) || 0;
       const pacote_mensal = Number(document.getElementById('aluno-pacote').value) || 0;
 
-      const { data, error } = await _supabase
+      const { error } = await _supabase
         .from('alunos')
-        .insert([{ user_id: currentUser.id, nome, telefone, valor_hora, pacote_mensal }])
-        .select();
+        .insert([{ user_id: currentUser.id, nome, telefone, valor_hora, pacote_mensal }]);
 
       if (error) {
         alert("Erro ao salvar aluno: " + error.message);
-        console.error(error);
         return;
       }
 
@@ -431,7 +502,7 @@
       const horas = is_pacote ? 0 : Number(document.getElementById('aula-horas').value || 1);
       const valor_hora = Number(document.getElementById('aula-valor').value || 0);
 
-      const { data, error } = await _supabase
+      const { error } = await _supabase
         .from('aulas')
         .insert([{ 
           user_id: currentUser.id, 
@@ -441,13 +512,12 @@
           horas,
           valor_hora,
           is_pacote,
+          status_pagamento: 'pendente',
           duracao_minutos: Math.round(horas * 60)
-        }])
-        .select();
+        }]);
 
       if (error) {
         alert("Erro ao lançar aula: " + error.message);
-        console.error(error);
         return;
       }
 
@@ -463,6 +533,11 @@
         const horas = Number(a.horas || 1);
         const valorHora = Number(a.valor_hora || 0);
         const valorTotal = isPacote ? valorHora : (horas * valorHora);
+        const isPago = a.status_pagamento === 'pago';
+
+        const badgePagamento = isPago 
+          ? `<button onclick="abrirModalPagamento('${a.id}')" class="px-2.5 py-1 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 text-xs font-semibold rounded-full transition">Pago</button>`
+          : `<button onclick="abrirModalPagamento('${a.id}')" class="px-2.5 py-1 bg-amber-100 text-amber-700 hover:bg-amber-200 text-xs font-semibold rounded-full transition">Pendente</button>`;
 
         return `
           <tr class="hover:bg-slate-50">
@@ -472,6 +547,7 @@
                      data-data="${new Date(a.data_aula).toLocaleString('pt-BR')}" 
                      data-conteudo="${a.conteudo}" 
                      data-horas="${isPacote ? 'Pacote Fixo' : horas + 'h'}"
+                     data-status="${a.status_pagamento || 'pendente'}"
                      data-total="${valorTotal}">
             </td>
             <td class="p-4 font-medium">${new Date(a.data_aula).toLocaleString('pt-BR')}</td>
@@ -479,9 +555,86 @@
             <td class="p-4">${a.conteudo}</td>
             <td class="p-4 text-center">${isPacote ? '<span class="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs rounded-full font-medium">Pacote</span>' : `${horas}h`}</td>
             <td class="p-4 text-right font-medium text-slate-700">R$ ${valorTotal.toFixed(2)}</td>
+            <td class="p-4 text-center">${badgePagamento}</td>
           </tr>
         `;
       }).join('');
+    }
+
+    // LÓGICA DO MODAL DE PAGAMENTO
+    function abrirModalPagamento(aulaId) {
+      const aula = listaAulasCache.find(a => a.id === aulaId);
+      if (!aula) return;
+
+      document.getElementById('modal-aula-id').value = aula.id;
+      const modal = document.getElementById('modal-pagamento');
+      const viewQuitar = document.getElementById('view-quitar-pagamento');
+      const viewDetalhe = document.getElementById('view-detalhe-pagamento');
+
+      if (aula.status_pagamento === 'pago') {
+        document.getElementById('modal-pagamento-titulo').innerText = "Detalhes do Pagamento";
+        document.getElementById('info-forma-pagamento').innerText = aula.forma_pagamento || 'Não informada';
+        document.getElementById('info-data-pagamento').innerText = aula.data_pagamento 
+          ? new Date(aula.data_pagamento).toLocaleDateString('pt-BR') 
+          : '-';
+        
+        viewQuitar.classList.add('hidden');
+        viewDetalhe.classList.remove('hidden');
+      } else {
+        document.getElementById('modal-pagamento-titulo').innerText = "Dar Baixa no Pagamento";
+        viewQuitar.classList.remove('hidden');
+        viewDetalhe.classList.add('hidden');
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function fecharModalPagamento() {
+      document.getElementById('modal-pagamento').classList.add('hidden');
+    }
+
+    async function confirmarPagamento() {
+      const aulaId = document.getElementById('modal-aula-id').value;
+      const forma_pagamento = document.getElementById('modal-forma-pagamento').value;
+      const data_pagamento = document.getElementById('modal-data-pagamento').value;
+
+      const { error } = await _supabase
+        .from('aulas')
+        .update({ 
+          status_pagamento: 'pago', 
+          forma_pagamento, 
+          data_pagamento 
+        })
+        .eq('id', aulaId);
+
+      if (error) {
+        alert("Erro ao atualizar pagamento: " + error.message);
+        return;
+      }
+
+      fecharModalPagamento();
+      loadAllData();
+    }
+
+    async function marcarComoPendente() {
+      const aulaId = document.getElementById('modal-aula-id').value;
+
+      const { error } = await _supabase
+        .from('aulas')
+        .update({ 
+          status_pagamento: 'pendente', 
+          forma_pagamento: null, 
+          data_pagamento: null 
+        })
+        .eq('id', aulaId);
+
+      if (error) {
+        alert("Erro ao atualizar status: " + error.message);
+        return;
+      }
+
+      fecharModalPagamento();
+      loadAllData();
     }
 
     function toggleSelectAllAulas(master) {
@@ -489,6 +642,7 @@
       checkboxes.forEach(cb => cb.checked = master.checked);
     }
 
+    // RELATÓRIO EM PDF COM DETALHAMENTO DE VALOR A PAGAR
     function gerarRelatorioPDF() {
       const selecionadas = document.querySelectorAll('.chk-aula-pdf:checked');
       if (selecionadas.length === 0) {
@@ -496,7 +650,9 @@
         return;
       }
 
-      let totalDevido = 0;
+      let totalGeral = 0;
+      let totalPago = 0;
+      let totalFaltaPagar = 0;
       let alunoNome = selecionadas[0].dataset.aluno;
       let linhas = '';
 
@@ -504,14 +660,26 @@
         const data = chk.dataset.data;
         const conteudo = chk.dataset.conteudo;
         const horas = chk.dataset.horas;
+        const status = chk.dataset.status;
         const total = parseFloat(chk.dataset.total || 0);
-        totalDevido += total;
+
+        totalGeral += total;
+        if (status === 'pago') {
+          totalPago += total;
+        } else {
+          totalFaltaPagar += total;
+        }
+
+        const badgeStatus = status === 'pago' 
+          ? `<span style="color: #059669; font-weight: bold;">PAGO</span>`
+          : `<span style="color: #d97706; font-weight: bold;">PENDENTE</span>`;
 
         linhas += `
           <tr>
             <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">${data}</td>
             <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">${conteudo}</td>
             <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: center;">${horas}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: center;">${badgeStatus}</td>
             <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: right;">R$ ${total.toFixed(2)}</td>
           </tr>
         `;
@@ -530,12 +698,14 @@
             p { margin: 4px 0; color: #64748b; font-size: 14px; }
             table { width: 100%; border-collapse: collapse; margin-top: 20px; }
             th { background-color: #f8fafc; padding: 10px; text-align: left; font-size: 12px; text-transform: uppercase; color: #475569; border-bottom: 2px solid #cbd5e1; }
-            .total { margin-top: 30px; text-align: right; font-size: 18px; font-weight: bold; color: #059669; }
+            .resumo-box { margin-top: 30px; border-top: 2px solid #e2e8f0; padding-top: 15px; width: 300px; margin-left: auto; text-align: right; }
+            .resumo-linha { font-size: 14px; margin-bottom: 5px; color: #475569; }
+            .resumo-destaque { font-size: 18px; font-weight: bold; color: #dc2626; margin-top: 8px; }
           </style>
         </head>
         <body>
           <div class="header">
-            <h1>Relatório de Aulas Ministradas</h1>
+            <h1>Relatório de Aulas & Financeiro</h1>
             <p><strong>Aluno(a):</strong> ${alunoNome}</p>
             <p><strong>Data de Emissão:</strong> ${new Date().toLocaleDateString('pt-BR')}</p>
           </div>
@@ -546,6 +716,7 @@
                 <th>Data e Hora</th>
                 <th>Conteúdo / Descrição</th>
                 <th style="text-align: center;">Carga Horária</th>
+                <th style="text-align: center;">Status</th>
                 <th style="text-align: right;">Valor</th>
               </tr>
             </thead>
@@ -554,8 +725,10 @@
             </tbody>
           </table>
 
-          <div class="total">
-            Total a Pagar: R$ ${totalDevido.toFixed(2).replace('.', ',')}
+          <div class="resumo-box">
+            <div class="resumo-linha">Total das Aulas: R$ ${totalGeral.toFixed(2).replace('.', ',')}</div>
+            <div class="resumo-linha" style="color: #059669;">Já Pago: R$ ${totalPago.toFixed(2).replace('.', ',')}</div>
+            <div class="resumo-destaque">Valor Falta Pagar: R$ ${totalFaltaPagar.toFixed(2).replace('.', ',')}</div>
           </div>
         </body>
         </html>
