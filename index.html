@@ -39,7 +39,7 @@
     </div>
   </div>
 
-  <!-- PAINEL PRINCIPAL (APP) -->
+  <!-- PAINEL PRINCIPAL -->
   <div id="app-screen" class="hidden min-h-screen flex flex-col md:flex-row">
     
     <!-- SIDEBAR -->
@@ -294,11 +294,21 @@
     }
 
     async function loadAllData() {
+      if (!currentUser) return;
+
       const verTodas = document.getElementById('chk-ver-todas').checked;
       const startDate = document.getElementById('filter-start-date').value;
       const endDate = document.getElementById('filter-end-date').value + "T23:59:59";
 
-      const { data: alunos } = await _supabase.from('alunos').select('*').order('nome');
+      const { data: alunos, error: errAlunos } = await _supabase
+        .from('alunos')
+        .select('*')
+        .order('nome');
+
+      if (errAlunos) {
+        console.error("Erro ao carregar alunos:", errAlunos);
+      }
+
       listaAlunosCache = alunos || [];
       renderAlunos(listaAlunosCache);
       populateAlunoSelects(listaAlunosCache);
@@ -307,7 +317,13 @@
       if (!verTodas) {
         queryAulas = queryAulas.gte('data_aula', startDate).lte('data_aula', endDate);
       }
-      const { data: aulas } = await queryAulas.order('data_aula', { ascending: false });
+      
+      const { data: aulas, error: errAulas } = await queryAulas.order('data_aula', { ascending: false });
+
+      if (errAulas) {
+        console.error("Erro ao carregar aulas:", errAulas);
+      }
+
       renderAulas(aulas || []);
 
       let totalAulas = aulas ? aulas.length : 0;
@@ -367,15 +383,25 @@
       if (alunoId) aoSelecionarAluno(alunoId);
     }
 
-    // Alunos
+    // Salvar Aluno
     async function saveAluno(e) {
       e.preventDefault();
       const nome = document.getElementById('aluno-nome').value;
       const telefone = document.getElementById('aluno-telefone').value;
-      const valor_hora = document.getElementById('aluno-valor').value || 0;
-      const pacote_mensal = document.getElementById('aluno-pacote').value || 0;
+      const valor_hora = Number(document.getElementById('aluno-valor').value) || 0;
+      const pacote_mensal = Number(document.getElementById('aluno-pacote').value) || 0;
 
-      await _supabase.from('alunos').insert([{ user_id: currentUser.id, nome, telefone, valor_hora, pacote_mensal }]);
+      const { data, error } = await _supabase
+        .from('alunos')
+        .insert([{ user_id: currentUser.id, nome, telefone, valor_hora, pacote_mensal }])
+        .select();
+
+      if (error) {
+        alert("Erro ao salvar aluno: " + error.message);
+        console.error(error);
+        return;
+      }
+
       document.getElementById('form-aluno').reset();
       loadAllData();
     }
@@ -395,7 +421,7 @@
       `).join('');
     }
 
-    // Aulas
+    // Salvar Aula
     async function saveAula(e) {
       e.preventDefault();
       const aluno_id = document.getElementById('aula-aluno-id').value;
@@ -405,15 +431,25 @@
       const horas = is_pacote ? 0 : Number(document.getElementById('aula-horas').value || 1);
       const valor_hora = Number(document.getElementById('aula-valor').value || 0);
 
-      await _supabase.from('aulas').insert([{ 
-        user_id: currentUser.id, 
-        aluno_id, 
-        data_aula, 
-        conteudo,
-        horas,
-        valor_hora,
-        is_pacote
-      }]);
+      const { data, error } = await _supabase
+        .from('aulas')
+        .insert([{ 
+          user_id: currentUser.id, 
+          aluno_id, 
+          data_aula, 
+          conteudo,
+          horas,
+          valor_hora,
+          is_pacote,
+          duracao_minutos: Math.round(horas * 60)
+        }])
+        .select();
+
+      if (error) {
+        alert("Erro ao lançar aula: " + error.message);
+        console.error(error);
+        return;
+      }
 
       document.getElementById('form-aula').reset();
       loadAllData();
@@ -533,8 +569,9 @@
 
     async function deleteRecord(table, id) {
       if (confirm('Tem certeza que deseja excluir?')) {
-        await _supabase.from(table).delete().eq('id', id);
-        loadAllData();
+        const { error } = await _supabase.from(table).delete().eq('id', id);
+        if (error) alert("Erro ao excluir: " + error.message);
+        else loadAllData();
       }
     }
   </script>
