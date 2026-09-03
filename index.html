@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EduControl - Gestão de Aulas e Finanças</title>
+  <title>EduControl - Gestão de Aulas</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -58,9 +58,6 @@
           <button onclick="switchTab('aulas')" id="btn-aulas" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-left hover:bg-slate-800">
             <i data-lucide="book-open" class="w-5 h-5"></i> Aulas (Diário)
           </button>
-          <button onclick="switchTab('financeiro')" id="btn-financeiro" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-left hover:bg-slate-800">
-            <i data-lucide="wallet" class="w-5 h-5"></i> Financeiro
-          </button>
         </nav>
       </div>
 
@@ -106,18 +103,18 @@
 
           <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
             <div class="flex justify-between items-center text-slate-500 mb-2">
-              <span class="text-sm font-medium">Valores Recebidos</span>
-              <i data-lucide="dollar-sign" class="w-5 h-5 text-indigo-500"></i>
+              <span class="text-sm font-medium">Horas Ministradas</span>
+              <i data-lucide="clock" class="w-5 h-5 text-indigo-500"></i>
             </div>
-            <div class="text-3xl font-extrabold text-emerald-600" id="dash-recebido">R$ 0,00</div>
+            <div class="text-3xl font-extrabold text-indigo-600" id="dash-total-horas">0h</div>
           </div>
 
           <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
             <div class="flex justify-between items-center text-slate-500 mb-2">
-              <span class="text-sm font-medium">Pendente / Atrasado</span>
-              <i data-lucide="alert-circle" class="w-5 h-5 text-amber-500"></i>
+              <span class="text-sm font-medium">Faturamento Estimado</span>
+              <i data-lucide="dollar-sign" class="w-5 h-5 text-emerald-500"></i>
             </div>
-            <div class="text-3xl font-extrabold text-amber-600" id="dash-pendente">R$ 0,00</div>
+            <div class="text-3xl font-extrabold text-emerald-600" id="dash-faturamento">R$ 0,00</div>
           </div>
         </div>
       </div>
@@ -126,11 +123,12 @@
       <div id="tab-alunos" class="tab-content hidden space-y-6">
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
           <h3 class="text-lg font-bold text-slate-800 mb-4">Novo Aluno</h3>
-          <form id="form-aluno" onsubmit="saveAluno(event)" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <input type="text" id="aluno-nome" placeholder="Nome Completo" required class="px-4 py-2 border rounded-lg outline-none">
-            <input type="tel" id="aluno-telefone" placeholder="(85) 91234-5678" maxlength="15" oninput="mascaraTelefone(this)" class="px-4 py-2 border rounded-lg outline-none">
-            <input type="number" step="0.01" id="aluno-valor" placeholder="Valor por Hora (R$)" required class="px-4 py-2 border rounded-lg outline-none">
-            <button type="submit" class="md:col-span-3 bg-indigo-600 text-white font-medium py-2.5 rounded-lg hover:bg-indigo-700">Cadastrar Aluno</button>
+          <form id="form-aluno" onsubmit="saveAluno(event)" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <input type="text" id="aluno-nome" placeholder="Nome Completo" required class="px-4 py-2 border rounded-lg outline-none md:col-span-2">
+            <input type="tel" id="aluno-telefone" placeholder="(85) 91234-5678" maxlength="15" oninput="mascaraTelefone(this)" class="px-4 py-2 border rounded-lg outline-none md:col-span-2">
+            <input type="number" step="0.01" id="aluno-valor" placeholder="Valor/Hora Ref. (R$)" class="px-4 py-2 border rounded-lg outline-none md:col-span-2">
+            <input type="number" step="0.01" id="aluno-pacote" placeholder="Pacote Mensal Ref. (R$)" class="px-4 py-2 border rounded-lg outline-none md:col-span-2">
+            <button type="submit" class="md:col-span-4 bg-indigo-600 text-white font-medium py-2.5 rounded-lg hover:bg-indigo-700">Cadastrar Aluno</button>
           </form>
         </div>
 
@@ -140,7 +138,8 @@
               <tr>
                 <th class="p-4">Nome</th>
                 <th class="p-4">Contato</th>
-                <th class="p-4">Valor/Hora</th>
+                <th class="p-4">Ref. Valor/Hora</th>
+                <th class="p-4">Ref. Pacote Mensal</th>
                 <th class="p-4">Ações</th>
               </tr>
             </thead>
@@ -152,12 +151,28 @@
       <!-- ABA: AULAS -->
       <div id="tab-aulas" class="tab-content hidden space-y-6">
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-          <h3 class="text-lg font-bold text-slate-800 mb-4">Registrar Nova Aula</h3>
-          <form id="form-aula" onsubmit="saveAula(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <select id="aula-aluno-id" required class="px-4 py-2 border rounded-lg outline-none"></select>
-            <input type="datetime-local" id="aula-data" required class="px-4 py-2 border rounded-lg outline-none">
-            <input type="text" id="aula-conteudo" placeholder="Conteúdo ministrado na aula" required class="md:col-span-2 px-4 py-2 border rounded-lg outline-none">
-            <button type="submit" class="md:col-span-2 bg-indigo-600 text-white font-medium py-2.5 rounded-lg hover:bg-indigo-700">Lançar Aula</button>
+          <h3 class="text-lg font-bold text-slate-800 mb-4">Registrar Nova Aula / Lançamento</h3>
+          <form id="form-aula" onsubmit="saveAula(event)" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <select id="aula-aluno-id" required onchange="aoSelecionarAluno(this.value)" class="px-4 py-2 border rounded-lg outline-none md:col-span-1"></select>
+            <input type="datetime-local" id="aula-data" required class="px-4 py-2 border rounded-lg outline-none md:col-span-1">
+            
+            <div class="flex items-center gap-2 border rounded-lg px-3 py-2 bg-slate-50 md:col-span-1">
+              <input type="checkbox" id="aula-is-pacote" onchange="toggleTipoCobranca(this.checked)" class="rounded text-indigo-600">
+              <label for="aula-is-pacote" class="text-sm font-medium text-slate-700 cursor-pointer">Pacote Mensal / Fixo</label>
+            </div>
+
+            <div id="box-horas" class="md:col-span-1">
+              <label class="block text-xs text-slate-500 mb-1">Carga Horária (em horas)</label>
+              <input type="number" step="0.25" id="aula-horas" value="1" placeholder="Ex: 1.5 (1h 30m)" class="w-full px-4 py-2 border rounded-lg outline-none">
+            </div>
+
+            <div class="md:col-span-2">
+              <label class="block text-xs text-slate-500 mb-1" id="lbl-valor-aula">Valor Cobrado (R$ / Hora)</label>
+              <input type="number" step="0.01" id="aula-valor" placeholder="R$ 0,00" required class="w-full px-4 py-2 border rounded-lg outline-none">
+            </div>
+
+            <input type="text" id="aula-conteudo" placeholder="Conteúdo ministrado ou Descrição do Pacote" required class="md:col-span-3 px-4 py-2 border rounded-lg outline-none">
+            <button type="submit" class="md:col-span-3 bg-indigo-600 text-white font-medium py-2.5 rounded-lg hover:bg-indigo-700">Lançar Aula</button>
           </form>
         </div>
 
@@ -176,7 +191,8 @@
                 </th>
                 <th class="p-4">Data/Hora</th>
                 <th class="p-4">Aluno</th>
-                <th class="p-4">Conteúdo</th>
+                <th class="p-4">Conteúdo / Descrição</th>
+                <th class="p-4 text-center">Carga Horária</th>
                 <th class="p-4 text-right">Valor Calc.</th>
               </tr>
             </thead>
@@ -185,49 +201,18 @@
         </div>
       </div>
 
-      <!-- ABA: FINANCEIRO -->
-      <div id="tab-financeiro" class="tab-content hidden space-y-6">
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-          <h3 class="text-lg font-bold text-slate-800 mb-4">Lançar Cobrança / Mensalidade</h3>
-          <form id="form-cobranca" onsubmit="saveCobranca(event)" class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <select id="cobranca-aluno-id" required class="px-4 py-2 border rounded-lg outline-none"></select>
-            <input type="text" id="cobranca-descricao" placeholder="Ex: Mensalidade - Outubro" required class="px-4 py-2 border rounded-lg outline-none">
-            <input type="number" step="0.01" id="cobranca-valor" placeholder="Valor (R$)" required class="px-4 py-2 border rounded-lg outline-none">
-            <input type="date" id="cobranca-vencimento" required class="px-4 py-2 border rounded-lg outline-none">
-            <button type="submit" class="md:col-span-4 bg-indigo-600 text-white font-medium py-2.5 rounded-lg hover:bg-indigo-700">Gerar Cobrança</button>
-          </form>
-        </div>
-
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <table class="w-full text-left border-collapse">
-            <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold">
-              <tr>
-                <th class="p-4">Vencimento</th>
-                <th class="p-4">Aluno</th>
-                <th class="p-4">Descrição</th>
-                <th class="p-4">Valor</th>
-                <th class="p-4">Status</th>
-                <th class="p-4">Ação</th>
-              </tr>
-            </thead>
-            <tbody id="table-cobrancas-body" class="divide-y divide-slate-100 text-sm"></tbody>
-          </table>
-        </div>
-      </div>
-
     </main>
   </div>
 
   <script>
-    // Configurações do Supabase
     const SUPABASE_URL = "https://mefoheotylglspivixgq.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1lZm9oZW90eWxnbHNwaXZpeGdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg0NTcxMzEsImV4cCI6MjEwNDAzMzEzMX0.BW98Z_5QSTJ13P-NfaHeqB51lq-iyfgTwKaSgrFxym8";
     
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let currentUser = null;
+    let listaAlunosCache = [];
 
-    // Inicialização
     document.addEventListener('DOMContentLoaded', async () => {
       lucide.createIcons();
       setDefaultDates();
@@ -264,7 +249,6 @@
       }
     }
 
-    // Autenticação
     async function checkSession() {
       const { data: { session } } = await _supabase.auth.getSession();
       if (session) {
@@ -300,7 +284,6 @@
       location.reload();
     }
 
-    // Navegação entre Abas
     function switchTab(tabName) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
       document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('bg-indigo-600', 'text-white'));
@@ -310,44 +293,43 @@
       document.getElementById('page-title').innerText = tabName.charAt(0).toUpperCase() + tabName.slice(1);
     }
 
-    // Operações de Dados
     async function loadAllData() {
       const verTodas = document.getElementById('chk-ver-todas').checked;
       const startDate = document.getElementById('filter-start-date').value;
       const endDate = document.getElementById('filter-end-date').value + "T23:59:59";
 
-      // 1. Carregar Alunos
       const { data: alunos } = await _supabase.from('alunos').select('*').order('nome');
-      renderAlunos(alunos || []);
-      populateAlunoSelects(alunos || []);
+      listaAlunosCache = alunos || [];
+      renderAlunos(listaAlunosCache);
+      populateAlunoSelects(listaAlunosCache);
 
-      // 2. Carregar Aulas
-      let queryAulas = _supabase.from('aulas').select('*, alunos(nome, valor_hora)');
+      let queryAulas = _supabase.from('aulas').select('*, alunos(nome)');
       if (!verTodas) {
         queryAulas = queryAulas.gte('data_aula', startDate).lte('data_aula', endDate);
       }
       const { data: aulas } = await queryAulas.order('data_aula', { ascending: false });
       renderAulas(aulas || []);
 
-      // 3. Carregar Cobranças
-      let queryCobrancas = _supabase.from('cobrancas').select('*, alunos(nome)');
-      if (!verTodas) {
-        queryCobrancas = queryCobrancas.gte('data_vencimento', startDate).lte('data_vencimento', endDate);
-      }
-      const { data: cobrancas } = await queryCobrancas.order('data_vencimento', { ascending: false });
-      renderCobrancas(cobrancas || []);
+      let totalAulas = aulas ? aulas.length : 0;
+      let totalHoras = 0;
+      let totalFaturamento = 0;
 
-      // 4. Atualizar Métricas do Dashboard
-      document.getElementById('dash-total-aulas').innerText = aulas ? aulas.length : 0;
-      
-      let pago = 0, pendente = 0;
-      (cobrancas || []).forEach(c => {
-        if (c.status_pagamento === 'pago') pago += Number(c.valor);
-        else pendente += Number(c.valor);
+      (aulas || []).forEach(a => {
+        const h = Number(a.horas || 1);
+        const v = Number(a.valor_hora || 0);
+        const isPacote = a.is_pacote || false;
+
+        if (isPacote) {
+          totalFaturamento += v;
+        } else {
+          totalHoras += h;
+          totalFaturamento += (h * v);
+        }
       });
 
-      document.getElementById('dash-recebido').innerText = `R$ ${pago.toFixed(2)}`;
-      document.getElementById('dash-pendente').innerText = `R$ ${pendente.toFixed(2)}`;
+      document.getElementById('dash-total-aulas').innerText = totalAulas;
+      document.getElementById('dash-total-horas').innerText = `${totalHoras}h`;
+      document.getElementById('dash-faturamento').innerText = `R$ ${totalFaturamento.toFixed(2)}`;
       
       lucide.createIcons();
     }
@@ -355,7 +337,34 @@
     function populateAlunoSelects(alunos) {
       const options = alunos.map(a => `<option value="${a.id}">${a.nome}</option>`).join('');
       document.getElementById('aula-aluno-id').innerHTML = '<option value="">Selecione o Aluno</option>' + options;
-      document.getElementById('cobranca-aluno-id').innerHTML = '<option value="">Selecione o Aluno</option>' + options;
+    }
+
+    function aoSelecionarAluno(alunoId) {
+      const aluno = listaAlunosCache.find(a => a.id === alunoId);
+      if (!aluno) return;
+
+      const isPacote = document.getElementById('aula-is-pacote').checked;
+      if (isPacote) {
+        document.getElementById('aula-valor').value = aluno.pacote_mensal || '';
+      } else {
+        document.getElementById('aula-valor').value = aluno.valor_hora || '';
+      }
+    }
+
+    function toggleTipoCobranca(isPacote) {
+      const boxHoras = document.getElementById('box-horas');
+      const lblValor = document.getElementById('lbl-valor-aula');
+      const alunoId = document.getElementById('aula-aluno-id').value;
+
+      if (isPacote) {
+        boxHoras.classList.add('hidden');
+        lblValor.innerText = "Valor do Pacote (R$)";
+      } else {
+        boxHoras.classList.remove('hidden');
+        lblValor.innerText = "Valor Cobrado (R$ / Hora)";
+      }
+
+      if (alunoId) aoSelecionarAluno(alunoId);
     }
 
     // Alunos
@@ -363,9 +372,10 @@
       e.preventDefault();
       const nome = document.getElementById('aluno-nome').value;
       const telefone = document.getElementById('aluno-telefone').value;
-      const valor_hora = document.getElementById('aluno-valor').value;
+      const valor_hora = document.getElementById('aluno-valor').value || 0;
+      const pacote_mensal = document.getElementById('aluno-pacote').value || 0;
 
-      await _supabase.from('alunos').insert([{ user_id: currentUser.id, nome, telefone, valor_hora }]);
+      await _supabase.from('alunos').insert([{ user_id: currentUser.id, nome, telefone, valor_hora, pacote_mensal }]);
       document.getElementById('form-aluno').reset();
       loadAllData();
     }
@@ -376,7 +386,8 @@
         <tr class="hover:bg-slate-50">
           <td class="p-4 font-medium text-slate-900">${a.nome}</td>
           <td class="p-4">${a.telefone || '-'}</td>
-          <td class="p-4">R$ ${Number(a.valor_hora).toFixed(2)}</td>
+          <td class="p-4">R$ ${Number(a.valor_hora || 0).toFixed(2)}</td>
+          <td class="p-4">R$ ${Number(a.pacote_mensal || 0).toFixed(2)}</td>
           <td class="p-4">
             <button onclick="deleteRecord('alunos', '${a.id}')" class="text-rose-600 hover:underline text-xs">Excluir</button>
           </td>
@@ -390,8 +401,20 @@
       const aluno_id = document.getElementById('aula-aluno-id').value;
       const data_aula = document.getElementById('aula-data').value;
       const conteudo = document.getElementById('aula-conteudo').value;
+      const is_pacote = document.getElementById('aula-is-pacote').checked;
+      const horas = is_pacote ? 0 : Number(document.getElementById('aula-horas').value || 1);
+      const valor_hora = Number(document.getElementById('aula-valor').value || 0);
 
-      await _supabase.from('aulas').insert([{ user_id: currentUser.id, aluno_id, data_aula, conteudo }]);
+      await _supabase.from('aulas').insert([{ 
+        user_id: currentUser.id, 
+        aluno_id, 
+        data_aula, 
+        conteudo,
+        horas,
+        valor_hora,
+        is_pacote
+      }]);
+
       document.getElementById('form-aula').reset();
       loadAllData();
     }
@@ -399,8 +422,12 @@
     function renderAulas(aulas) {
       const tbody = document.getElementById('table-aulas-body');
       tbody.innerHTML = aulas.map(a => {
-        const valorHora = a.alunos ? Number(a.alunos.valor_hora || 0) : 0;
         const nomeAluno = a.alunos ? a.alunos.nome : 'Aluno não informado';
+        const isPacote = a.is_pacote || false;
+        const horas = Number(a.horas || 1);
+        const valorHora = Number(a.valor_hora || 0);
+        const valorTotal = isPacote ? valorHora : (horas * valorHora);
+
         return `
           <tr class="hover:bg-slate-50">
             <td class="p-4 text-center">
@@ -408,12 +435,14 @@
                      data-aluno="${nomeAluno}" 
                      data-data="${new Date(a.data_aula).toLocaleString('pt-BR')}" 
                      data-conteudo="${a.conteudo}" 
-                     data-valor="${valorHora}">
+                     data-horas="${isPacote ? 'Pacote Fixo' : horas + 'h'}"
+                     data-total="${valorTotal}">
             </td>
             <td class="p-4 font-medium">${new Date(a.data_aula).toLocaleString('pt-BR')}</td>
             <td class="p-4">${nomeAluno}</td>
             <td class="p-4">${a.conteudo}</td>
-            <td class="p-4 text-right font-medium text-slate-600">R$ ${valorHora.toFixed(2)}</td>
+            <td class="p-4 text-center">${isPacote ? '<span class="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs rounded-full font-medium">Pacote</span>' : `${horas}h`}</td>
+            <td class="p-4 text-right font-medium text-slate-700">R$ ${valorTotal.toFixed(2)}</td>
           </tr>
         `;
       }).join('');
@@ -438,14 +467,16 @@
       selecionadas.forEach(chk => {
         const data = chk.dataset.data;
         const conteudo = chk.dataset.conteudo;
-        const valor = parseFloat(chk.dataset.valor || 0);
-        totalDevido += valor;
+        const horas = chk.dataset.horas;
+        const total = parseFloat(chk.dataset.total || 0);
+        totalDevido += total;
 
         linhas += `
           <tr>
             <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">${data}</td>
             <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">${conteudo}</td>
-            <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: right;">R$ ${valor.toFixed(2)}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: center;">${horas}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: right;">R$ ${total.toFixed(2)}</td>
           </tr>
         `;
       });
@@ -477,7 +508,8 @@
             <thead>
               <tr>
                 <th>Data e Hora</th>
-                <th>Conteúdo Trabalhado</th>
+                <th>Conteúdo / Descrição</th>
+                <th style="text-align: center;">Carga Horária</th>
                 <th style="text-align: right;">Valor</th>
               </tr>
             </thead>
@@ -497,44 +529,6 @@
       janela.document.write(HTMLRelatorio);
       janela.document.close();
       setTimeout(() => { janela.print(); }, 250);
-    }
-
-    // Cobranças
-    async function saveCobranca(e) {
-      e.preventDefault();
-      const aluno_id = document.getElementById('cobranca-aluno-id').value;
-      const descricao = document.getElementById('cobranca-descricao').value;
-      const valor = document.getElementById('cobranca-valor').value;
-      const data_vencimento = document.getElementById('cobranca-vencimento').value;
-
-      await _supabase.from('cobrancas').insert([{ user_id: currentUser.id, aluno_id, descricao, valor, data_vencimento }]);
-      document.getElementById('form-cobranca').reset();
-      loadAllData();
-    }
-
-    function renderCobrancas(cobrancas) {
-      const tbody = document.getElementById('table-cobrancas-body');
-      tbody.innerHTML = cobrancas.map(c => `
-        <tr class="hover:bg-slate-50">
-          <td class="p-4 font-medium">${new Date(c.data_vencimento).toLocaleDateString('pt-BR')}</td>
-          <td class="p-4">${c.alunos ? c.alunos.nome : '-'}</td>
-          <td class="p-4">${c.descricao}</td>
-          <td class="p-4 font-bold">R$ ${Number(c.valor).toFixed(2)}</td>
-          <td class="p-4">
-            <span class="px-2.5 py-1 rounded-full text-xs font-semibold ${c.status_pagamento === 'pago' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
-              ${c.status_pagamento.toUpperCase()}
-            </span>
-          </td>
-          <td class="p-4">
-            ${c.status_pagamento === 'pendente' ? `<button onclick="togglePagamento('${c.id}', 'pago')" class="bg-emerald-600 text-white px-2 py-1 rounded text-xs font-medium hover:bg-emerald-700">Marcar Pago</button>` : ''}
-          </td>
-        </tr>
-      `).join('');
-    }
-
-    async function togglePagamento(id, status) {
-      await _supabase.from('cobrancas').update({ status_pagamento: status, data_pagamento: new Date().toISOString() }).eq('id', id);
-      loadAllData();
     }
 
     async function deleteRecord(table, id) {
