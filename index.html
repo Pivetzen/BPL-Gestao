@@ -80,7 +80,12 @@
         <h2 class="text-xl font-bold text-slate-800" id="page-title">Dashboard</h2>
         
         <div class="flex items-center gap-3 flex-wrap">
-          <span class="text-xs font-semibold text-slate-500 uppercase">Filtro de Período:</span>
+          <label class="flex items-center gap-2 text-sm font-medium text-slate-600 cursor-pointer">
+            <input type="checkbox" id="chk-ver-todas" onchange="toggleFiltroDatas()" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+            <span>Ver todas as datas</span>
+          </label>
+          <span class="text-slate-300">|</span>
+          <span class="text-xs font-semibold text-slate-500 uppercase">Período:</span>
           <input type="date" id="filter-start-date" class="px-3 py-1.5 text-sm rounded-lg border border-slate-200 outline-none">
           <span class="text-slate-400">até</span>
           <input type="date" id="filter-end-date" class="px-3 py-1.5 text-sm rounded-lg border border-slate-200 outline-none">
@@ -123,7 +128,7 @@
           <h3 class="text-lg font-bold text-slate-800 mb-4">Novo Aluno</h3>
           <form id="form-aluno" onsubmit="saveAluno(event)" class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <input type="text" id="aluno-nome" placeholder="Nome Completo" required class="px-4 py-2 border rounded-lg outline-none">
-            <input type="text" id="aluno-telefone" placeholder="Telefone / WhatsApp" class="px-4 py-2 border rounded-lg outline-none">
+            <input type="tel" id="aluno-telefone" placeholder="(85) 91234-5678" maxlength="15" oninput="mascaraTelefone(this)" class="px-4 py-2 border rounded-lg outline-none">
             <input type="number" step="0.01" id="aluno-valor" placeholder="Valor por Hora (R$)" required class="px-4 py-2 border rounded-lg outline-none">
             <button type="submit" class="md:col-span-3 bg-indigo-600 text-white font-medium py-2.5 rounded-lg hover:bg-indigo-700">Cadastrar Aluno</button>
           </form>
@@ -157,12 +162,22 @@
         </div>
 
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <span class="text-xs font-semibold text-slate-500 uppercase">Aulas Registradas</span>
+            <button onclick="gerarRelatorioPDF()" class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition">
+              <i data-lucide="file-text" class="w-4 h-4"></i> Gerar Relatório (PDF)
+            </button>
+          </div>
           <table class="w-full text-left border-collapse">
             <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold">
               <tr>
+                <th class="p-4 w-10 text-center">
+                  <input type="checkbox" id="chk-select-all-aulas" onchange="toggleSelectAllAulas(this)" class="rounded border-slate-300 text-indigo-600">
+                </th>
                 <th class="p-4">Data/Hora</th>
                 <th class="p-4">Aluno</th>
                 <th class="p-4">Conteúdo</th>
+                <th class="p-4 text-right">Valor Calc.</th>
               </tr>
             </thead>
             <tbody id="table-aulas-body" class="divide-y divide-slate-100 text-sm"></tbody>
@@ -227,6 +242,28 @@
       document.getElementById('filter-end-date').value = lastDay;
     }
 
+    function toggleFiltroDatas() {
+      const verTodas = document.getElementById('chk-ver-todas').checked;
+      document.getElementById('filter-start-date').disabled = verTodas;
+      document.getElementById('filter-end-date').disabled = verTodas;
+      loadAllData();
+    }
+
+    function mascaraTelefone(input) {
+      let valor = input.value.replace(/\D/g, "");
+      if (valor.length > 11) valor = valor.slice(0, 11);
+
+      if (valor.length > 6) {
+        input.value = `(${valor.slice(0, 2)}) ${valor.slice(2, 7)}-${valor.slice(7)}`;
+      } else if (valor.length > 2) {
+        input.value = `(${valor.slice(0, 2)}) ${valor.slice(2)}`;
+      } else if (valor.length > 0) {
+        input.value = `(${valor}`;
+      } else {
+        input.value = "";
+      }
+    }
+
     // Autenticação
     async function checkSession() {
       const { data: { session } } = await _supabase.auth.getSession();
@@ -275,6 +312,7 @@
 
     // Operações de Dados
     async function loadAllData() {
+      const verTodas = document.getElementById('chk-ver-todas').checked;
       const startDate = document.getElementById('filter-start-date').value;
       const endDate = document.getElementById('filter-end-date').value + "T23:59:59";
 
@@ -283,20 +321,20 @@
       renderAlunos(alunos || []);
       populateAlunoSelects(alunos || []);
 
-      // 2. Carregar Aulas filtradas
-      const { data: aulas } = await _supabase.from('aulas')
-        .select('*, alunos(nome)')
-        .gte('data_aula', startDate)
-        .lte('data_aula', endDate)
-        .order('data_aula', { ascending: false });
+      // 2. Carregar Aulas
+      let queryAulas = _supabase.from('aulas').select('*, alunos(nome, valor_hora)');
+      if (!verTodas) {
+        queryAulas = queryAulas.gte('data_aula', startDate).lte('data_aula', endDate);
+      }
+      const { data: aulas } = await queryAulas.order('data_aula', { ascending: false });
       renderAulas(aulas || []);
 
-      // 3. Carregar Cobranças filtradas
-      const { data: cobrancas } = await _supabase.from('cobrancas')
-        .select('*, alunos(nome)')
-        .gte('data_vencimento', startDate)
-        .lte('data_vencimento', endDate)
-        .order('data_vencimento', { ascending: false });
+      // 3. Carregar Cobranças
+      let queryCobrancas = _supabase.from('cobrancas').select('*, alunos(nome)');
+      if (!verTodas) {
+        queryCobrancas = queryCobrancas.gte('data_vencimento', startDate).lte('data_vencimento', endDate);
+      }
+      const { data: cobrancas } = await queryCobrancas.order('data_vencimento', { ascending: false });
       renderCobrancas(cobrancas || []);
 
       // 4. Atualizar Métricas do Dashboard
@@ -310,6 +348,8 @@
 
       document.getElementById('dash-recebido').innerText = `R$ ${pago.toFixed(2)}`;
       document.getElementById('dash-pendente').innerText = `R$ ${pendente.toFixed(2)}`;
+      
+      lucide.createIcons();
     }
 
     function populateAlunoSelects(alunos) {
@@ -358,13 +398,105 @@
 
     function renderAulas(aulas) {
       const tbody = document.getElementById('table-aulas-body');
-      tbody.innerHTML = aulas.map(a => `
-        <tr class="hover:bg-slate-50">
-          <td class="p-4 font-medium">${new Date(a.data_aula).toLocaleString('pt-BR')}</td>
-          <td class="p-4">${a.alunos ? a.alunos.nome : '-'}</td>
-          <td class="p-4">${a.conteudo}</td>
-        </tr>
-      `).join('');
+      tbody.innerHTML = aulas.map(a => {
+        const valorHora = a.alunos ? Number(a.alunos.valor_hora || 0) : 0;
+        const nomeAluno = a.alunos ? a.alunos.nome : 'Aluno não informado';
+        return `
+          <tr class="hover:bg-slate-50">
+            <td class="p-4 text-center">
+              <input type="checkbox" class="chk-aula-pdf rounded border-slate-300 text-indigo-600" 
+                     data-aluno="${nomeAluno}" 
+                     data-data="${new Date(a.data_aula).toLocaleString('pt-BR')}" 
+                     data-conteudo="${a.conteudo}" 
+                     data-valor="${valorHora}">
+            </td>
+            <td class="p-4 font-medium">${new Date(a.data_aula).toLocaleString('pt-BR')}</td>
+            <td class="p-4">${nomeAluno}</td>
+            <td class="p-4">${a.conteudo}</td>
+            <td class="p-4 text-right font-medium text-slate-600">R$ ${valorHora.toFixed(2)}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function toggleSelectAllAulas(master) {
+      const checkboxes = document.querySelectorAll('.chk-aula-pdf');
+      checkboxes.forEach(cb => cb.checked = master.checked);
+    }
+
+    function gerarRelatorioPDF() {
+      const selecionadas = document.querySelectorAll('.chk-aula-pdf:checked');
+      if (selecionadas.length === 0) {
+        alert("Selecione ao menos uma aula para gerar o relatório.");
+        return;
+      }
+
+      let totalDevido = 0;
+      let alunoNome = selecionadas[0].dataset.aluno;
+      let linhas = '';
+
+      selecionadas.forEach(chk => {
+        const data = chk.dataset.data;
+        const conteudo = chk.dataset.conteudo;
+        const valor = parseFloat(chk.dataset.valor || 0);
+        totalDevido += valor;
+
+        linhas += `
+          <tr>
+            <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">${data}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">${conteudo}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: right;">R$ ${valor.toFixed(2)}</td>
+          </tr>
+        `;
+      });
+
+      const HTMLRelatorio = `
+        <!DOCTYPE html>
+        <html lang="pt-BR">
+        <head>
+          <meta charset="UTF-8">
+          <title>Relatório de Aulas - ${alunoNome}</title>
+          <style>
+            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 30px; color: #1e293b; line-height: 1.5; }
+            .header { border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 20px; }
+            h1 { font-size: 22px; color: #0f172a; margin: 0 0 8px 0; }
+            p { margin: 4px 0; color: #64748b; font-size: 14px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th { background-color: #f8fafc; padding: 10px; text-align: left; font-size: 12px; text-transform: uppercase; color: #475569; border-bottom: 2px solid #cbd5e1; }
+            .total { margin-top: 30px; text-align: right; font-size: 18px; font-weight: bold; color: #059669; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Relatório de Aulas Ministradas</h1>
+            <p><strong>Aluno(a):</strong> ${alunoNome}</p>
+            <p><strong>Data de Emissão:</strong> ${new Date().toLocaleDateString('pt-BR')}</p>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Data e Hora</th>
+                <th>Conteúdo Trabalhado</th>
+                <th style="text-align: right;">Valor</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${linhas}
+            </tbody>
+          </table>
+
+          <div class="total">
+            Total a Pagar: R$ ${totalDevido.toFixed(2).replace('.', ',')}
+          </div>
+        </body>
+        </html>
+      `;
+
+      const janela = window.open('', '', 'width=800,height=600');
+      janela.document.write(HTMLRelatorio);
+      janela.document.close();
+      setTimeout(() => { janela.print(); }, 250);
     }
 
     // Cobranças
@@ -394,7 +526,7 @@
             </span>
           </td>
           <td class="p-4">
-            ${c.status_pagamento === 'pendente' ? `<button onclick="togglePagamento('${c.id}', 'pago')" class="bg-emerald-600 text-white px-2 py-1 rounded text-xs">Marcar Pago</button>` : ''}
+            ${c.status_pagamento === 'pendente' ? `<button onclick="togglePagamento('${c.id}', 'pago')" class="bg-emerald-600 text-white px-2 py-1 rounded text-xs font-medium hover:bg-emerald-700">Marcar Pago</button>` : ''}
           </td>
         </tr>
       `).join('');
