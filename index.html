@@ -72,7 +72,7 @@
     <!-- CONTEÚDO PRINCIPAL -->
     <main class="flex-1 p-4 md:p-10 overflow-y-auto">
       
-      <!-- CONTROLES E FILTROS -->
+      <!-- CONTROLES E FILTROS GERAIS -->
       <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h2 class="text-xl font-bold text-slate-800" id="page-title">Dashboard</h2>
         
@@ -81,16 +81,6 @@
             <span class="text-xs font-semibold text-slate-500 uppercase">Aluno:</span>
             <select id="filter-aluno-id" onchange="loadAllData()" class="px-3 py-1.5 text-sm rounded-lg border border-slate-200 outline-none w-full sm:w-auto max-w-[180px]">
               <option value="">Todos os Alunos</option>
-            </select>
-          </div>
-
-          <div class="flex items-center gap-2 w-full sm:w-auto">
-            <span class="text-xs font-semibold text-slate-500 uppercase">Status:</span>
-            <select id="filter-status" onchange="loadAllData()" class="px-3 py-1.5 text-sm rounded-lg border border-slate-200 outline-none w-full sm:w-auto">
-              <option value="">Todos os Status</option>
-              <option value="pendente">Pendente</option>
-              <option value="pago">Pago</option>
-              <option value="cancelada">Cancelada</option>
             </select>
           </div>
 
@@ -223,8 +213,22 @@
         </div>
 
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 flex-wrap gap-2">
-            <span class="text-xs font-semibold text-slate-500 uppercase">Aulas Registradas</span>
+          <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 flex-wrap gap-4">
+            <div class="flex items-center gap-4 flex-wrap">
+              <span class="text-xs font-semibold text-slate-500 uppercase">Aulas Registradas</span>
+              
+              <!-- FILTRO EXCLUSIVO DO CARD DE AULAS -->
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-semibold text-slate-500 uppercase">Status:</span>
+                <select id="filter-status-aulas" onchange="renderAulas(filtrarAulas())" class="px-3 py-1 text-xs rounded-lg border border-slate-200 outline-none bg-white">
+                  <option value="">Todos os Status</option>
+                  <option value="pendente">Pendente</option>
+                  <option value="pago">Pago</option>
+                  <option value="cancelada">Cancelada</option>
+                </select>
+              </div>
+            </div>
+
             <div class="flex items-center gap-2">
               <button onclick="toggleSelectAllAulasMobile()" class="md:hidden text-xs text-indigo-600 font-semibold px-2 py-1 bg-indigo-50 rounded">Selecionar Todas</button>
               <button onclick="gerarRelatorioPDF()" class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition">
@@ -308,7 +312,6 @@
     let listaAlunosCache = [];
     let listaAulasCache = [];
 
-    // Helper de formatação de data respeitando fuso horário local
     function parseLocalDateTime(dateStr) {
       if (!dateStr) return '-';
       const parts = dateStr.split(/[-T:]/);
@@ -407,7 +410,6 @@
       const startDate = document.getElementById('filter-start-date').value;
       const endDate = document.getElementById('filter-end-date').value + "T23:59:59";
       const filterAlunoId = document.getElementById('filter-aluno-id').value;
-      const filterStatus = document.getElementById('filter-status').value;
 
       const { data: alunos, error: errAlunos } = await _supabase
         .from('alunos')
@@ -428,17 +430,17 @@
       if (filterAlunoId) {
         queryAulas = queryAulas.eq('aluno_id', filterAlunoId);
       }
-      if (filterStatus) {
-        queryAulas = queryAulas.eq('status_pagamento', filterStatus);
-      }
 
       const { data: aulas, error: errAulas } = await queryAulas.order('data_aula', { ascending: false });
 
       if (errAulas) console.error("Erro ao carregar aulas:", errAulas);
 
       listaAulasCache = aulas || [];
-      renderAulas(listaAulasCache);
+      
+      // Renderiza as aulas com o filtro de status exclusivo do card
+      renderAulas(filtrarAulas());
 
+      // Dashboard calcula TODAS as aulas sem o filtro de status do card
       let totalAulas = 0;
       let totalHoras = 0;
       let totalPago = 0;
@@ -468,6 +470,12 @@
       document.getElementById('dash-pendente').innerText = `R$ ${totalPendente.toFixed(2)}`;
       
       lucide.createIcons();
+    }
+
+    function filtrarAulas() {
+      const statusFiltro = document.getElementById('filter-status-aulas').value;
+      if (!statusFiltro) return listaAulasCache;
+      return listaAulasCache.filter(a => (a.status_pagamento || 'pendente') === statusFiltro);
     }
 
     function populateAlunoSelects(alunos) {
