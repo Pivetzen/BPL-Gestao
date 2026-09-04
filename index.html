@@ -33,7 +33,7 @@
 
         <div class="flex gap-3 pt-2">
           <button type="button" onclick="login()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-lg transition">Entrar</button>
-          <button type="button" onclick="signUp()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 rounded-lg transition">Cadastrar</button>
+          <button type="button" onclick="signUp()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 rounded-lg transition">Solicitar Cadastro</button>
         </div>
       </form>
     </div>
@@ -58,6 +58,9 @@
           <button onclick="switchTab('aulas')" id="btn-aulas" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-left hover:bg-slate-800">
             <i data-lucide="book-open" class="w-5 h-5"></i> Aulas/Atendimentos
           </button>
+          <button onclick="switchTab('usuarios')" id="btn-usuarios" class="nav-btn hidden w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-left hover:bg-slate-800 text-amber-400">
+            <i data-lucide="user-check" class="w-5 h-5"></i> Aprovação
+          </button>
         </nav>
       </div>
 
@@ -73,7 +76,7 @@
     <main class="flex-1 p-4 md:p-10 overflow-y-auto">
       
       <!-- CONTROLES E FILTROS GERAIS -->
-      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div id="bar-filters" class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h2 class="text-xl font-bold text-slate-800" id="page-title">Dashboard</h2>
         
         <div class="flex items-center gap-3 flex-wrap">
@@ -217,7 +220,6 @@
             <div class="flex items-center gap-4 flex-wrap">
               <span class="text-xs font-semibold text-slate-500 uppercase">Aulas / Atendimentos Registrados</span>
               
-              <!-- FILTRO EXCLUSIVO DO CARD -->
               <div class="flex items-center gap-2">
                 <span class="text-xs font-semibold text-slate-500 uppercase">Status:</span>
                 <select id="filter-status-aulas" onchange="renderAulas(filtrarAulas())" class="px-3 py-1 text-xs rounded-lg border border-slate-200 outline-none bg-white">
@@ -256,6 +258,26 @@
                 </tr>
               </thead>
               <tbody id="table-aulas-body" class="divide-y divide-slate-100 text-sm"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ABA: APROVAÇÃO DE USUÁRIOS (ADMIN) -->
+      <div id="tab-usuarios" class="tab-content hidden space-y-6">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden p-6">
+          <h3 class="text-lg font-bold text-slate-800 mb-4">Gerenciamento de Solicitações de Cadastro</h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold">
+                <tr>
+                  <th class="p-4">E-mail do Solicitante</th>
+                  <th class="p-4">Data da Solicitação</th>
+                  <th class="p-4 text-center">Status Atual</th>
+                  <th class="p-4 text-center">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="table-usuarios-body" class="divide-y divide-slate-100 text-sm"></tbody>
             </table>
           </div>
         </div>
@@ -309,6 +331,7 @@
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let currentUser = null;
+    let userProfile = null;
     let listaAlunosCache = [];
     let listaAulasCache = [];
 
@@ -363,9 +386,34 @@
       const { data: { session } } = await _supabase.auth.getSession();
       if (session) {
         currentUser = session.user;
+
+        // Verificar status de aprovação
+        const { data: profile } = await _supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', currentUser.id)
+          .single();
+
+        userProfile = profile;
+
+        if (!profile || !profile.aprovado) {
+          alert("Sua solicitação de cadastro está pendente de aprovação pelo administrador.");
+          await _supabase.auth.signOut();
+          document.getElementById('auth-screen').classList.remove('hidden');
+          document.getElementById('app-screen').classList.add('hidden');
+          return;
+        }
+
         document.getElementById('user-email').innerText = currentUser.email;
         document.getElementById('auth-screen').classList.add('hidden');
         document.getElementById('app-screen').classList.remove('hidden');
+
+        if (userProfile.is_admin) {
+          document.getElementById('btn-usuarios').classList.remove('hidden');
+        } else {
+          document.getElementById('btn-usuarios').classList.add('hidden');
+        }
+
         loadAllData();
       } else {
         document.getElementById('auth-screen').classList.remove('hidden');
@@ -377,16 +425,35 @@
       const email = document.getElementById('auth-email').value;
       const password = document.getElementById('auth-password').value;
       const { error } = await _supabase.auth.signInWithPassword({ email, password });
-      if (error) alert(error.message);
+      if (error) alert("Erro ao entrar: " + error.message);
       else checkSession();
     }
 
     async function signUp() {
       const email = document.getElementById('auth-email').value;
       const password = document.getElementById('auth-password').value;
-      const { error } = await _supabase.auth.signUp({ email, password });
-      if (error) alert(error.message);
-      else alert('Conta criada! Verifique seu e-mail ou faça login.');
+
+      if (!email || !password) {
+        alert("Preencha e-mail e senha para solicitar cadastro.");
+        return;
+      }
+
+      const { data, error } = await _supabase.auth.signUp({ email, password });
+      
+      if (error) {
+        alert("Erro no cadastro: " + error.message);
+        return;
+      }
+
+      if (data.user) {
+        await _supabase.from('profiles').insert([
+          { id: data.user.id, email: email, aprovado: false, is_admin: false }
+        ]);
+
+        alert("Solicitação enviada com sucesso! Seu acesso aguarda aprovação do administrador.");
+        await _supabase.auth.signOut();
+        document.getElementById('auth-form').reset();
+      }
     }
 
     async function logout() {
@@ -401,12 +468,68 @@
       document.getElementById(`tab-${tabName}`).classList.remove('hidden');
       document.getElementById(`btn-${tabName}`).classList.add('bg-indigo-600', 'text-white');
 
+      const barFilters = document.getElementById('bar-filters');
+      if (tabName === 'usuarios') {
+        barFilters.classList.add('hidden');
+        loadUsuarios();
+      } else {
+        barFilters.classList.remove('hidden');
+      }
+
       let titleMap = {
         'dashboard': 'Dashboard',
         'alunos': 'Alunos/Pacientes',
-        'aulas': 'Aulas/Atendimentos'
+        'aulas': 'Aulas/Atendimentos',
+        'usuarios': 'Aprovação de Usuários'
       };
       document.getElementById('page-title').innerText = titleMap[tabName] || tabName;
+    }
+
+    async function loadUsuarios() {
+      if (!userProfile?.is_admin) return;
+
+      const { data: usuarios, error } = await _supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error("Erro ao carregar solicitações:", error);
+        return;
+      }
+
+      const tbody = document.getElementById('table-usuarios-body');
+      tbody.innerHTML = usuarios.map(u => {
+        const isAprovado = u.aprovado;
+        const statusBadge = isAprovado
+          ? `<span class="px-2.5 py-1 bg-emerald-100 text-emerald-700 font-semibold rounded-full text-xs">Aprovado</span>`
+          : `<span class="px-2.5 py-1 bg-amber-100 text-amber-700 font-semibold rounded-full text-xs">Pendente</span>`;
+
+        return `
+          <tr class="hover:bg-slate-50">
+            <td class="p-4 font-medium text-slate-900">${u.email} ${u.is_admin ? '<span class="text-xs text-indigo-600 font-bold">(Admin)</span>' : ''}</td>
+            <td class="p-4">${new Date(u.created_at).toLocaleDateString('pt-BR')}</td>
+            <td class="p-4 text-center">${statusBadge}</td>
+            <td class="p-4 text-center space-x-2">
+              ${!u.is_admin ? `
+                <button onclick="alterarStatusUsuario('${u.id}', ${!isAprovado})" class="${isAprovado ? 'text-amber-600' : 'text-emerald-600'} hover:underline text-xs font-semibold">
+                  ${isAprovado ? 'Bloquear Acesso' : 'Aprovar Cadastro'}
+                </button>
+              ` : '-'}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function alterarStatusUsuario(id, novoStatus) {
+      const { error } = await _supabase
+        .from('profiles')
+        .update({ aprovado: novoStatus })
+        .eq('id', id);
+
+      if (error) alert("Erro ao atualizar usuário: " + error.message);
+      else loadUsuarios();
     }
 
     async function loadAllData() {
