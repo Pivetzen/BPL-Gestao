@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EduControl - Gestão de Aulas</title>
+  <title>BPL Gestão</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -17,8 +17,8 @@
         <div class="inline-flex p-3 bg-indigo-100 text-indigo-600 rounded-xl mb-3">
           <i data-lucide="graduation-cap" class="w-8 h-8"></i>
         </div>
-        <h1 class="text-2xl font-bold text-slate-900">EduControl SaaS</h1>
-        <p class="text-sm text-slate-500 mt-1">Gestão inteligente para professores particulares</p>
+        <h1 class="text-2xl font-bold text-slate-900">BPL Gestão</h1>
+        <p class="text-sm text-slate-500 mt-1">Gestão inteligente e controle financeiro</p>
       </div>
 
       <form id="auth-form" class="space-y-4">
@@ -46,17 +46,17 @@
     <aside class="w-full md:w-64 bg-slate-900 text-slate-300 p-6 flex flex-col justify-between">
       <div>
         <div class="flex items-center gap-3 text-white font-bold text-xl mb-8">
-          <i data-lucide="graduation-cap" class="text-indigo-400"></i> EduControl
+          <i data-lucide="graduation-cap" class="text-indigo-400"></i> BPL Gestão
         </div>
         <nav class="space-y-1">
           <button onclick="switchTab('dashboard')" id="btn-dashboard" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-left bg-indigo-600 text-white">
             <i data-lucide="layout-dashboard" class="w-5 h-5"></i> Dashboard
           </button>
           <button onclick="switchTab('alunos')" id="btn-alunos" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-left hover:bg-slate-800">
-            <i data-lucide="users" class="w-5 h-5"></i> Alunos
+            <i data-lucide="users" class="w-5 h-5"></i> Alunos/Pacientes
           </button>
           <button onclick="switchTab('aulas')" id="btn-aulas" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-left hover:bg-slate-800">
-            <i data-lucide="book-open" class="w-5 h-5"></i> Aulas (Diário)
+            <i data-lucide="book-open" class="w-5 h-5"></i> Aulas/Atendimentos
           </button>
         </nav>
       </div>
@@ -78,9 +78,9 @@
         
         <div class="flex items-center gap-3 flex-wrap">
           <div class="flex items-center gap-2 w-full sm:w-auto">
-            <span class="text-xs font-semibold text-slate-500 uppercase">Aluno:</span>
-            <select id="filter-aluno-id" onchange="loadAllData()" class="px-3 py-1.5 text-sm rounded-lg border border-slate-200 outline-none w-full sm:w-auto max-w-[180px]">
-              <option value="">Todos os Alunos</option>
+            <span class="text-xs font-semibold text-slate-500 uppercase">Aluno/Paciente:</span>
+            <select id="filter-aluno-id" onchange="loadAllData()" class="px-3 py-1.5 text-sm rounded-lg border border-slate-200 outline-none w-full sm:w-auto max-w-[200px]">
+              <option value="">Todos os Alunos/Pacientes</option>
             </select>
           </div>
 
@@ -108,7 +108,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
           <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
             <div class="flex justify-between items-center text-slate-500 mb-2">
-              <span class="text-sm font-medium">Aulas Realizadas</span>
+              <span class="text-sm font-medium">Atendimentos Realizados</span>
               <i data-lucide="check-circle" class="w-5 h-5 text-indigo-500"></i>
             </div>
             <div class="text-3xl font-extrabold text-slate-900" id="dash-total-aulas">0</div>
@@ -116,7 +116,7 @@
 
           <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
             <div class="flex justify-between items-center text-slate-500 mb-2">
-              <span class="text-sm font-medium">Horas Ministradas</span>
+              <span class="text-sm font-medium">Horas Realizadas</span>
               <i data-lucide="clock" class="w-5 h-5 text-indigo-500"></i>
             </div>
             <div class="text-3xl font-extrabold text-indigo-600" id="dash-total-horas">0h</div>
@@ -140,10 +140,10 @@
         </div>
       </div>
 
-      <!-- ABA: ALUNOS -->
+      <!-- ABA: ALUNOS / PACIENTES -->
       <div id="tab-alunos" class="tab-content hidden space-y-6">
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-          <h3 class="text-lg font-bold text-slate-800 mb-4" id="title-form-aluno">Novo Aluno</h3>
+          <h3 class="text-lg font-bold text-slate-800 mb-4" id="title-form-aluno">Novo Aluno/Paciente</h3>
           <form id="form-aluno" onsubmit="saveAluno(event)" class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <input type="hidden" id="aluno-id">
             <input type="text" id="aluno-nome" placeholder="Nome Completo" required class="px-4 py-2 border rounded-lg outline-none md:col-span-2">
@@ -152,7 +152,7 @@
             <input type="number" step="0.01" id="aluno-pacote" placeholder="Pacote Mensal Ref. (R$)" class="px-4 py-2 border rounded-lg outline-none md:col-span-2">
             
             <div class="md:col-span-4 flex gap-2">
-              <button type="submit" id="btn-save-aluno" class="flex-1 bg-indigo-600 text-white font-medium py-2.5 rounded-lg hover:bg-indigo-700 transition">Cadastrar Aluno</button>
+              <button type="submit" id="btn-save-aluno" class="flex-1 bg-indigo-600 text-white font-medium py-2.5 rounded-lg hover:bg-indigo-700 transition">Cadastrar Aluno/Paciente</button>
               <button type="button" id="btn-cancel-aluno" onclick="resetFormAluno()" class="hidden bg-slate-200 text-slate-700 font-medium px-4 py-2.5 rounded-lg hover:bg-slate-300 transition">Cancelar</button>
             </div>
           </form>
@@ -179,10 +179,10 @@
         </div>
       </div>
 
-      <!-- ABA: AULAS -->
+      <!-- ABA: AULAS / ATENDIMENTOS -->
       <div id="tab-aulas" class="tab-content hidden space-y-6">
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-          <h3 class="text-lg font-bold text-slate-800 mb-4" id="title-form-aula">Registrar Nova Aula / Lançamento</h3>
+          <h3 class="text-lg font-bold text-slate-800 mb-4" id="title-form-aula">Registrar Nova Aula/Atendimento</h3>
           <form id="form-aula" onsubmit="saveAula(event)" class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <input type="hidden" id="aula-id">
             <select id="aula-aluno-id" required onchange="aoSelecionarAluno(this.value)" class="px-4 py-2 border rounded-lg outline-none md:col-span-1"></select>
@@ -206,7 +206,7 @@
             <input type="text" id="aula-conteudo" placeholder="Conteúdo ministrado ou Descrição do Pacote" required class="md:col-span-3 px-4 py-2 border rounded-lg outline-none">
             
             <div class="md:col-span-3 flex gap-2">
-              <button type="submit" id="btn-save-aula" class="flex-1 bg-indigo-600 text-white font-medium py-2.5 rounded-lg hover:bg-indigo-700 transition">Lançar Aula</button>
+              <button type="submit" id="btn-save-aula" class="flex-1 bg-indigo-600 text-white font-medium py-2.5 rounded-lg hover:bg-indigo-700 transition">Lançar Registro</button>
               <button type="button" id="btn-cancel-aula" onclick="resetFormAula()" class="hidden bg-slate-200 text-slate-700 font-medium px-4 py-2.5 rounded-lg hover:bg-slate-300 transition">Cancelar</button>
             </div>
           </form>
@@ -215,9 +215,9 @@
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 flex-wrap gap-4">
             <div class="flex items-center gap-4 flex-wrap">
-              <span class="text-xs font-semibold text-slate-500 uppercase">Aulas Registradas</span>
+              <span class="text-xs font-semibold text-slate-500 uppercase">Aulas / Atendimentos Registrados</span>
               
-              <!-- FILTRO EXCLUSIVO DO CARD DE AULAS -->
+              <!-- FILTRO EXCLUSIVO DO CARD -->
               <div class="flex items-center gap-2">
                 <span class="text-xs font-semibold text-slate-500 uppercase">Status:</span>
                 <select id="filter-status-aulas" onchange="renderAulas(filtrarAulas())" class="px-3 py-1 text-xs rounded-lg border border-slate-200 outline-none bg-white">
@@ -247,7 +247,7 @@
                     <input type="checkbox" id="chk-select-all-aulas" onchange="toggleSelectAllAulas(this)" class="rounded border-slate-300 text-indigo-600">
                   </th>
                   <th class="p-4">Data/Hora</th>
-                  <th class="p-4">Aluno</th>
+                  <th class="p-4">Aluno/Paciente</th>
                   <th class="p-4">Conteúdo / Descrição</th>
                   <th class="p-4 text-center">Carga Horária</th>
                   <th class="p-4 text-right">Valor Calc.</th>
@@ -400,7 +400,13 @@
       
       document.getElementById(`tab-${tabName}`).classList.remove('hidden');
       document.getElementById(`btn-${tabName}`).classList.add('bg-indigo-600', 'text-white');
-      document.getElementById('page-title').innerText = tabName.charAt(0).toUpperCase() + tabName.slice(1);
+
+      let titleMap = {
+        'dashboard': 'Dashboard',
+        'alunos': 'Alunos/Pacientes',
+        'aulas': 'Aulas/Atendimentos'
+      };
+      document.getElementById('page-title').innerText = titleMap[tabName] || tabName;
     }
 
     async function loadAllData() {
@@ -437,10 +443,8 @@
 
       listaAulasCache = aulas || [];
       
-      // Renderiza as aulas com o filtro de status exclusivo do card
       renderAulas(filtrarAulas());
 
-      // Dashboard calcula TODAS as aulas sem o filtro de status do card
       let totalAulas = 0;
       let totalHoras = 0;
       let totalPago = 0;
@@ -485,8 +489,8 @@
       const optionsAulas = alunosAtivos.map(a => `<option value="${a.id}">${a.nome}</option>`).join('');
       const optionsFiltro = alunos.map(a => `<option value="${a.id}">${a.nome}${a.status === 'bloqueado' ? ' (Bloqueado)' : ''}</option>`).join('');
       
-      document.getElementById('aula-aluno-id').innerHTML = '<option value="">Selecione o Aluno</option>' + optionsAulas;
-      document.getElementById('filter-aluno-id').innerHTML = '<option value="">Todos os Alunos</option>' + optionsFiltro;
+      document.getElementById('aula-aluno-id').innerHTML = '<option value="">Selecione Aluno/Paciente</option>' + optionsAulas;
+      document.getElementById('filter-aluno-id').innerHTML = '<option value="">Todos os Alunos/Pacientes</option>' + optionsFiltro;
       document.getElementById('filter-aluno-id').value = selectedFilter;
     }
 
@@ -542,7 +546,7 @@
       }
 
       if (error) {
-        alert("Erro ao salvar aluno: " + error.message);
+        alert("Erro ao salvar cadastro: " + error.message);
         return;
       }
 
@@ -560,8 +564,8 @@
       document.getElementById('aluno-valor').value = aluno.valor_hora || '';
       document.getElementById('aluno-pacote').value = aluno.pacote_mensal || '';
 
-      document.getElementById('title-form-aluno').innerText = "Editar Aluno";
-      document.getElementById('btn-save-aluno').innerText = "Atualizar Aluno";
+      document.getElementById('title-form-aluno').innerText = "Editar Aluno/Paciente";
+      document.getElementById('btn-save-aluno').innerText = "Atualizar Cadastro";
       document.getElementById('btn-cancel-aluno').classList.remove('hidden');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -569,8 +573,8 @@
     function resetFormAluno() {
       document.getElementById('form-aluno').reset();
       document.getElementById('aluno-id').value = '';
-      document.getElementById('title-form-aluno').innerText = "Novo Aluno";
-      document.getElementById('btn-save-aluno').innerText = "Cadastrar Aluno";
+      document.getElementById('title-form-aluno').innerText = "Novo Aluno/Paciente";
+      document.getElementById('btn-save-aluno').innerText = "Cadastrar Aluno/Paciente";
       document.getElementById('btn-cancel-aluno').classList.add('hidden');
     }
 
@@ -578,7 +582,7 @@
       const newStatus = currentStatus === 'bloqueado' ? 'ativo' : 'bloqueado';
       const acao = newStatus === 'bloqueado' ? 'bloquear' : 'desbloquear';
 
-      if (confirm(`Tem certeza que deseja ${acao} este aluno?`)) {
+      if (confirm(`Tem certeza que deseja ${acao} este cadastro?`)) {
         const { error } = await _supabase
           .from('alunos')
           .update({ status: newStatus })
@@ -691,7 +695,7 @@
       }
 
       if (error) {
-        alert("Erro ao salvar aula: " + error.message);
+        alert("Erro ao salvar registro: " + error.message);
         return;
       }
 
@@ -714,8 +718,8 @@
       document.getElementById('aula-horas').value = aula.horas || 1;
       document.getElementById('aula-valor').value = aula.valor_hora || 0;
 
-      document.getElementById('title-form-aula').innerText = "Editar Aula / Lançamento";
-      document.getElementById('btn-save-aula').innerText = "Atualizar Aula";
+      document.getElementById('title-form-aula').innerText = "Editar Aula/Atendimento";
+      document.getElementById('btn-save-aula').innerText = "Atualizar Registro";
       document.getElementById('btn-cancel-aula').classList.remove('hidden');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -723,20 +727,20 @@
     function resetFormAula() {
       document.getElementById('form-aula').reset();
       document.getElementById('aula-id').value = '';
-      document.getElementById('title-form-aula').innerText = "Registrar Nova Aula / Lançamento";
-      document.getElementById('btn-save-aula').innerText = "Lançar Aula";
+      document.getElementById('title-form-aula').innerText = "Registrar Nova Aula/Atendimento";
+      document.getElementById('btn-save-aula').innerText = "Lançar Registro";
       document.getElementById('btn-cancel-aula').classList.add('hidden');
       toggleTipoCobranca(false);
     }
 
     async function cancelarAula(id) {
-      if (confirm('Tem certeza que deseja cancelar esta aula? Ela continuará no histórico como cancelada.')) {
+      if (confirm('Tem certeza que deseja cancelar este registro? Ele continuará no histórico como cancelado.')) {
         const { error } = await _supabase
           .from('aulas')
           .update({ status_pagamento: 'cancelada' })
           .eq('id', id);
 
-        if (error) alert("Erro ao cancelar aula: " + error.message);
+        if (error) alert("Erro ao cancelar: " + error.message);
         else loadAllData();
       }
     }
@@ -744,7 +748,7 @@
     function renderAulas(aulas) {
       const tbody = document.getElementById('table-aulas-body');
       tbody.innerHTML = aulas.map(a => {
-        const nomeAluno = a.alunos ? a.alunos.nome : 'Aluno não informado';
+        const nomeAluno = a.alunos ? a.alunos.nome : 'Não informado';
         const isPacote = a.is_pacote || false;
         const horas = Number(a.horas || 1);
         const valorHora = Number(a.valor_hora || 0);
@@ -788,7 +792,7 @@
 
       const cardsContainer = document.getElementById('cards-aulas-mobile');
       cardsContainer.innerHTML = aulas.map(a => {
-        const nomeAluno = a.alunos ? a.alunos.nome : 'Aluno não informado';
+        const nomeAluno = a.alunos ? a.alunos.nome : 'Não informado';
         const isPacote = a.is_pacote || false;
         const horas = Number(a.horas || 1);
         const valorHora = Number(a.valor_hora || 0);
@@ -929,7 +933,7 @@
       checkboxes.forEach(cb => cb.checked = master.checked);
     }
 
-    // GERAR RELATÓRIO PDF (SEM DUPLICIDADE)
+    // GERAR RELATÓRIO PDF
     function gerarRelatorioPDF() {
       const isMobile = window.innerWidth < 768;
       const selector = isMobile 
@@ -939,7 +943,7 @@
       const selecionadas = document.querySelectorAll(selector);
 
       if (selecionadas.length === 0) {
-        alert("Selecione ao menos uma aula para gerar o relatório.");
+        alert("Selecione ao menos um registro para gerar o relatório.");
         return;
       }
 
@@ -983,7 +987,7 @@
         <html lang="pt-BR">
         <head>
           <meta charset="UTF-8">
-          <title>Relatório de Aulas - ${alunoNome}</title>
+          <title>Relatório - ${alunoNome}</title>
           <style>
             body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 30px; color: #1e293b; line-height: 1.5; }
             .header { border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 20px; }
@@ -998,8 +1002,8 @@
         </head>
         <body>
           <div class="header">
-            <h1>Relatório de Aulas & Financeiro</h1>
-            <p><strong>Aluno(a):</strong> ${alunoNome}</p>
+            <h1>Relatório de Atendimentos & Financeiro</h1>
+            <p><strong>Aluno/Paciente:</strong> ${alunoNome}</p>
             <p><strong>Data de Emissão:</strong> ${new Date().toLocaleDateString('pt-BR')}</p>
           </div>
 
@@ -1019,7 +1023,7 @@
           </table>
 
           <div class="resumo-box">
-            <div class="resumo-linha">Total das Aulas: R$ ${totalGeral.toFixed(2).replace('.', ',')}</div>
+            <div class="resumo-linha">Total Registrado: R$ ${totalGeral.toFixed(2).replace('.', ',')}</div>
             <div class="resumo-linha" style="color: #059669;">Já Pago: R$ ${totalPago.toFixed(2).replace('.', ',')}</div>
             <div class="resumo-destaque">Valor Falta Pagar: R$ ${totalFaltaPagar.toFixed(2).replace('.', ',')}</div>
           </div>
