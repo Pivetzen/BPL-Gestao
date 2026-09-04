@@ -79,8 +79,18 @@
         <div class="flex items-center gap-3 flex-wrap">
           <div class="flex items-center gap-2 w-full sm:w-auto">
             <span class="text-xs font-semibold text-slate-500 uppercase">Aluno:</span>
-            <select id="filter-aluno-id" class="px-3 py-1.5 text-sm rounded-lg border border-slate-200 outline-none w-full sm:w-auto max-w-[180px]">
+            <select id="filter-aluno-id" onchange="loadAllData()" class="px-3 py-1.5 text-sm rounded-lg border border-slate-200 outline-none w-full sm:w-auto max-w-[180px]">
               <option value="">Todos os Alunos</option>
+            </select>
+          </div>
+
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <span class="text-xs font-semibold text-slate-500 uppercase">Status:</span>
+            <select id="filter-status" onchange="loadAllData()" class="px-3 py-1.5 text-sm rounded-lg border border-slate-200 outline-none w-full sm:w-auto">
+              <option value="">Todos os Status</option>
+              <option value="pendente">Pendente</option>
+              <option value="pago">Pago</option>
+              <option value="cancelada">Cancelada</option>
             </select>
           </div>
 
@@ -159,10 +169,8 @@
         </div>
 
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden p-4 md:p-0">
-          <!-- VISÃO MOBILE (CARDS) -->
           <div id="cards-alunos-mobile" class="space-y-4 md:hidden"></div>
 
-          <!-- VISÃO DESKTOP (TABELA) -->
           <div class="hidden md:block overflow-x-auto">
             <table class="w-full text-left border-collapse">
               <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold">
@@ -225,10 +233,8 @@
             </div>
           </div>
 
-          <!-- VISÃO MOBILE (CARDS) -->
           <div id="cards-aulas-mobile" class="p-4 space-y-4 md:hidden"></div>
 
-          <!-- VISÃO DESKTOP (TABELA) -->
           <div class="hidden md:block overflow-x-auto">
             <table class="w-full text-left border-collapse">
               <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold">
@@ -264,7 +270,6 @@
 
       <input type="hidden" id="modal-aula-id">
 
-      <!-- VISÃO: QUITAR PAGAMENTO -->
       <div id="view-quitar-pagamento" class="space-y-4 hidden">
         <div>
           <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Forma de Pagamento</label>
@@ -283,7 +288,6 @@
         <button onclick="confirmarPagamento()" class="w-full bg-emerald-600 text-white font-medium py-2.5 rounded-lg hover:bg-emerald-700 transition">Marcar como Pago</button>
       </div>
 
-      <!-- VISÃO: DETALHES DE AULA PAGA -->
       <div id="view-detalhe-pagamento" class="space-y-3 hidden">
         <div class="bg-emerald-50 text-emerald-800 p-3 rounded-lg text-sm border border-emerald-100">
           <p><strong>Forma:</strong> <span id="info-forma-pagamento"></span></p>
@@ -303,6 +307,17 @@
     let currentUser = null;
     let listaAlunosCache = [];
     let listaAulasCache = [];
+
+    // Helper de formatação de data respeitando fuso horário local
+    function parseLocalDateTime(dateStr) {
+      if (!dateStr) return '-';
+      const parts = dateStr.split(/[-T:]/);
+      if (parts.length >= 5) {
+        const d = new Date(parts[0], parts[1] - 1, parts[2], parts[3], parts[4]);
+        return d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+      }
+      return new Date(dateStr).toLocaleString('pt-BR');
+    }
 
     document.addEventListener('DOMContentLoaded', async () => {
       lucide.createIcons();
@@ -392,6 +407,7 @@
       const startDate = document.getElementById('filter-start-date').value;
       const endDate = document.getElementById('filter-end-date').value + "T23:59:59";
       const filterAlunoId = document.getElementById('filter-aluno-id').value;
+      const filterStatus = document.getElementById('filter-status').value;
 
       const { data: alunos, error: errAlunos } = await _supabase
         .from('alunos')
@@ -411,6 +427,9 @@
       }
       if (filterAlunoId) {
         queryAulas = queryAulas.eq('aluno_id', filterAlunoId);
+      }
+      if (filterStatus) {
+        queryAulas = queryAulas.eq('status_pagamento', filterStatus);
       }
 
       const { data: aulas, error: errAulas } = await queryAulas.order('data_aula', { ascending: false });
@@ -491,7 +510,7 @@
       if (alunoId) aoSelecionarAluno(alunoId);
     }
 
-    // GESTÃO DE ALUNOS (EDITAR / BLOQUEAR)
+    // GESTÃO DE ALUNOS
     async function saveAluno(e) {
       e.preventDefault();
       const id = document.getElementById('aluno-id').value;
@@ -563,7 +582,6 @@
     }
 
     function renderAlunos(alunos) {
-      // Tabela Desktop
       const tbody = document.getElementById('table-alunos-body');
       tbody.innerHTML = alunos.map(a => {
         const isBloqueado = a.status === 'bloqueado';
@@ -588,7 +606,6 @@
         `;
       }).join('');
 
-      // Cards Mobile
       const cardsContainer = document.getElementById('cards-alunos-mobile');
       cardsContainer.innerHTML = alunos.map(a => {
         const isBloqueado = a.status === 'bloqueado';
@@ -622,7 +639,7 @@
       }).join('');
     }
 
-    // GESTÃO DE AULAS (EDITAR / CANCELAR)
+    // GESTÃO DE AULAS
     async function saveAula(e) {
       e.preventDefault();
       const id = document.getElementById('aula-id').value;
@@ -717,7 +734,6 @@
     }
 
     function renderAulas(aulas) {
-      // Tabela Desktop
       const tbody = document.getElementById('table-aulas-body');
       tbody.innerHTML = aulas.map(a => {
         const nomeAluno = a.alunos ? a.alunos.nome : 'Aluno não informado';
@@ -726,6 +742,7 @@
         const valorHora = Number(a.valor_hora || 0);
         const valorTotal = isPacote ? valorHora : (horas * valorHora);
         const status = a.status_pagamento || 'pendente';
+        const dataFormatada = parseLocalDateTime(a.data_aula);
 
         let badgePagamento = '';
         if (status === 'pago') {
@@ -741,13 +758,13 @@
             <td class="p-4 text-center">
               <input type="checkbox" ${status === 'cancelada' ? 'disabled' : ''} class="chk-aula-pdf rounded border-slate-300 text-indigo-600" 
                      data-aluno="${nomeAluno}" 
-                     data-data="${new Date(a.data_aula).toLocaleString('pt-BR')}" 
+                     data-data="${dataFormatada}" 
                      data-conteudo="${a.conteudo}" 
                      data-horas="${isPacote ? 'Pacote Fixo' : horas + 'h'}"
                      data-status="${status}"
                      data-total="${valorTotal}">
             </td>
-            <td class="p-4 font-medium">${new Date(a.data_aula).toLocaleString('pt-BR')}</td>
+            <td class="p-4 font-medium">${dataFormatada}</td>
             <td class="p-4">${nomeAluno}</td>
             <td class="p-4">${a.conteudo}</td>
             <td class="p-4 text-center">${isPacote ? '<span class="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs rounded-full font-medium">Pacote</span>' : `${horas}h`}</td>
@@ -761,7 +778,6 @@
         `;
       }).join('');
 
-      // Cards Mobile
       const cardsContainer = document.getElementById('cards-aulas-mobile');
       cardsContainer.innerHTML = aulas.map(a => {
         const nomeAluno = a.alunos ? a.alunos.nome : 'Aluno não informado';
@@ -770,6 +786,7 @@
         const valorHora = Number(a.valor_hora || 0);
         const valorTotal = isPacote ? valorHora : (horas * valorHora);
         const status = a.status_pagamento || 'pendente';
+        const dataFormatada = parseLocalDateTime(a.data_aula);
 
         let badgePagamento = '';
         if (status === 'pago') {
@@ -786,7 +803,7 @@
               <div class="flex items-center gap-2">
                 <input type="checkbox" ${status === 'cancelada' ? 'disabled' : ''} class="chk-aula-pdf rounded border-slate-300 text-indigo-600" 
                        data-aluno="${nomeAluno}" 
-                       data-data="${new Date(a.data_aula).toLocaleString('pt-BR')}" 
+                       data-data="${dataFormatada}" 
                        data-conteudo="${a.conteudo}" 
                        data-horas="${isPacote ? 'Pacote Fixo' : horas + 'h'}"
                        data-status="${status}"
@@ -797,7 +814,7 @@
             </div>
 
             <div class="text-xs text-slate-600 space-y-1 ${status === 'cancelada' ? 'line-through' : ''}">
-              <p><strong>Data/Hora:</strong> ${new Date(a.data_aula).toLocaleString('pt-BR')}</p>
+              <p><strong>Data/Hora:</strong> ${dataFormatada}</p>
               <p><strong>Conteúdo:</strong> ${a.conteudo}</p>
               <p><strong>Tipo / Carga:</strong> ${isPacote ? 'Pacote Fixo' : horas + 'h'}</p>
             </div>
@@ -823,7 +840,7 @@
       checkboxes.forEach(cb => cb.checked = !allChecked);
     }
 
-    // LÓGICA DO MODAL DE PAGAMENTO
+    // MODAL DE PAGAMENTO
     function abrirModalPagamento(aulaId) {
       const aula = listaAulasCache.find(a => a.id === aulaId);
       if (!aula || aula.status_pagamento === 'cancelada') return;
@@ -900,13 +917,19 @@
     }
 
     function toggleSelectAllAulas(master) {
-      const checkboxes = document.querySelectorAll('.chk-aula-pdf:not([disabled])');
+      const checkboxes = document.querySelectorAll('.hidden.md\\:block .chk-aula-pdf:not([disabled])');
       checkboxes.forEach(cb => cb.checked = master.checked);
     }
 
-    // RELATÓRIO EM PDF COM DETALHAMENTO DE VALOR A PAGAR
+    // GERAR RELATÓRIO PDF (SEM DUPLICIDADE)
     function gerarRelatorioPDF() {
-      const selecionadas = document.querySelectorAll('.chk-aula-pdf:checked');
+      const isMobile = window.innerWidth < 768;
+      const selector = isMobile 
+        ? '#cards-aulas-mobile .chk-aula-pdf:checked' 
+        : '.hidden.md\\:block .chk-aula-pdf:checked';
+
+      const selecionadas = document.querySelectorAll(selector);
+
       if (selecionadas.length === 0) {
         alert("Selecione ao menos uma aula para gerar o relatório.");
         return;
