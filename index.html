@@ -428,7 +428,7 @@
         userProfile = profile;
 
         if (!profile || !profile.aprovado) {
-          alert("Sua solicitação de cadastro está pendente de aprovação pelo administrador.");
+          alert("Sua conta está pendente ou bloqueada pelo administrador.");
           await _supabase.auth.signOut();
           document.getElementById('auth-screen').classList.remove('hidden');
           document.getElementById('app-screen').classList.add('hidden');
@@ -505,7 +505,7 @@
       const password = document.getElementById('auth-password').value;
 
       if (!email || !password) {
-        alert("Preencha e-mail e senha para solicitar cadastro.");
+        alert("Preencha e-mail e senha para realizar o cadastro.");
         return;
       }
 
@@ -517,6 +517,7 @@
       }
 
       if (data.user) {
+        // Calcula 7 dias a partir de hoje para o período trial
         const dataTrial = new Date();
         dataTrial.setDate(dataTrial.getDate() + 7);
 
@@ -524,15 +525,14 @@
           { 
             id: data.user.id, 
             email: email, 
-            aprovado: false, 
+            aprovado: true,             // Já nasce aprovado para o trial
             is_admin: false,
-            status_assinatura: 'trial',
+            status_assinatura: 'trial', // Status trial automático
             data_validade: dataTrial.toISOString()
           }
         ]);
 
-        alert("Solicitação enviada com sucesso! Seu acesso aguarda aprovação do administrador.");
-        await _supabase.auth.signOut();
+        alert("Cadastro realizado com sucesso! Seu período Trial de 7 dias já está ativo. Você já pode entrar.");
         document.getElementById('auth-form').reset();
       }
     }
@@ -595,8 +595,8 @@
       tbody.innerHTML = usuariosFiltrados.map(u => {
         const isAprovado = u.aprovado;
         const statusBadge = isAprovado
-          ? `<span class="px-2.5 py-1 bg-emerald-100 text-emerald-700 font-semibold rounded-full text-xs">Aprovado</span>`
-          : `<span class="px-2.5 py-1 bg-amber-100 text-amber-700 font-semibold rounded-full text-xs">Pendente</span>`;
+          ? `<span class="px-2.5 py-1 bg-emerald-100 text-emerald-700 font-semibold rounded-full text-xs">Ativo</span>`
+          : `<span class="px-2.5 py-1 bg-rose-100 text-rose-700 font-semibold rounded-full text-xs">Bloqueado</span>`;
 
         const valDate = u.data_validade ? u.data_validade.split('T')[0] : '';
         const statusAssinatura = u.status_assinatura || 'trial';
@@ -624,8 +624,8 @@
 
             <td class="p-4 text-center space-x-2">
               ${!u.is_admin ? `
-                <button onclick="alterarStatusUsuario('${u.id}', ${!isAprovado})" class="${isAprovado ? 'text-amber-600' : 'text-emerald-600'} hover:underline text-xs font-semibold">
-                  ${isAprovado ? 'Bloquear Acesso' : 'Aprovar Cadastro'}
+                <button onclick="alterarStatusUsuario('${u.id}', ${!isAprovado})" class="${isAprovado ? 'text-rose-600' : 'text-emerald-600'} hover:underline text-xs font-semibold">
+                  ${isAprovado ? 'Bloquear Acesso' : 'Desbloquear'}
                 </button>
               ` : '-'}
             </td>
@@ -638,8 +638,8 @@
       mobileContainer.innerHTML = usuariosFiltrados.map(u => {
         const isAprovado = u.aprovado;
         const statusBadge = isAprovado
-          ? `<span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 font-semibold rounded-full text-[11px]">Aprovado</span>`
-          : `<span class="px-2 py-0.5 bg-amber-100 text-amber-700 font-semibold rounded-full text-[11px]">Pendente</span>`;
+          ? `<span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 font-semibold rounded-full text-[11px]">Ativo</span>`
+          : `<span class="px-2 py-0.5 bg-rose-100 text-rose-700 font-semibold rounded-full text-[11px]">Bloqueado</span>`;
 
         const valDate = u.data_validade ? u.data_validade.split('T')[0] : '';
         const statusAssinatura = u.status_assinatura || 'trial';
@@ -671,10 +671,10 @@
             </div>
 
             <div class="pt-2 border-t border-slate-200 flex justify-between items-center text-xs">
-              <span class="text-slate-400">Solicitado: ${new Date(u.created_at).toLocaleDateString('pt-BR')}</span>
+              <span class="text-slate-400">Criado: ${new Date(u.created_at).toLocaleDateString('pt-BR')}</span>
               ${!u.is_admin ? `
-                <button onclick="alterarStatusUsuario('${u.id}', ${!isAprovado})" class="${isAprovado ? 'text-amber-600' : 'text-emerald-600'} font-bold hover:underline">
-                  ${isAprovado ? 'Bloquear' : 'Aprovar'}
+                <button onclick="alterarStatusUsuario('${u.id}', ${!isAprovado})" class="${isAprovado ? 'text-rose-600' : 'text-emerald-600'} font-bold hover:underline">
+                  ${isAprovado ? 'Bloquear' : 'Desbloquear'}
                 </button>
               ` : ''}
             </div>
