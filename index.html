@@ -64,9 +64,22 @@
         </nav>
       </div>
 
-      <div class="pt-6 border-t border-slate-800">
-        <div class="text-xs text-slate-500 mb-2 truncate" id="user-email">...</div>
-        <button onclick="logout()" class="w-full flex items-center gap-2 text-sm text-rose-400 hover:text-rose-300 py-1">
+      <!-- INFORMAÇÕES DO USUÁRIO NA SIDEBAR -->
+      <div class="pt-4 border-t border-slate-800 space-y-2">
+        <div class="text-xs text-slate-400 truncate font-medium" id="user-email">...</div>
+        
+        <div id="user-status-card" class="bg-slate-800 p-2.5 rounded-lg border border-slate-700/50 space-y-1">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] uppercase font-bold text-slate-400">Status</span>
+            <span id="badge-user-type" class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-indigo-500/20 text-indigo-300">...</span>
+          </div>
+          <div class="text-xs font-medium text-slate-300 flex items-center gap-1.5 pt-0.5" id="user-validity-info">
+            <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-400"></i>
+            <span>...</span>
+          </div>
+        </div>
+
+        <button onclick="logout()" class="w-full flex items-center gap-2 text-sm text-rose-400 hover:text-rose-300 py-1 pt-2">
           <i data-lucide="log-out" class="w-4 h-4"></i> Sair do sistema
         </button>
       </div>
@@ -266,14 +279,16 @@
       <!-- ABA: APROVAÇÃO DE USUÁRIOS (ADMIN) -->
       <div id="tab-usuarios" class="tab-content hidden space-y-6">
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden p-6">
-          <h3 class="text-lg font-bold text-slate-800 mb-4">Gerenciamento de Solicitações de Cadastro</h3>
+          <h3 class="text-lg font-bold text-slate-800 mb-4">Gerenciamento de Solicitações e Planos</h3>
           <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
               <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold">
                 <tr>
                   <th class="p-4">E-mail do Solicitante</th>
                   <th class="p-4">Data da Solicitação</th>
-                  <th class="p-4 text-center">Status Atual</th>
+                  <th class="p-4 text-center">Acesso</th>
+                  <th class="p-4 text-center">Tipo de Plano</th>
+                  <th class="p-4 text-center">Validade do Acesso</th>
                   <th class="p-4 text-center">Ações</th>
                 </tr>
               </thead>
@@ -387,7 +402,7 @@
       if (session) {
         currentUser = session.user;
 
-        // Verificar status de aprovação
+        // Buscar perfil e dados de validade do usuário
         const { data: profile } = await _supabase
           .from('profiles')
           .select('*')
@@ -404,7 +419,10 @@
           return;
         }
 
+        // Atualizar interface do usuário
         document.getElementById('user-email').innerText = currentUser.email;
+        renderUserStatusSidebar(profile);
+
         document.getElementById('auth-screen').classList.add('hidden');
         document.getElementById('app-screen').classList.remove('hidden');
 
@@ -419,6 +437,44 @@
         document.getElementById('auth-screen').classList.remove('hidden');
         document.getElementById('app-screen').classList.add('hidden');
       }
+    }
+
+    function renderUserStatusSidebar(profile) {
+      const badgeElem = document.getElementById('badge-user-type');
+      const validityElem = document.getElementById('user-validity-info');
+
+      if (profile.is_admin) {
+        badgeElem.innerText = "ADMIN";
+        badgeElem.className = "px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30";
+        validityElem.innerHTML = `<i data-lucide="shield-check" class="w-3.5 h-3.5 text-amber-400"></i> <span>Acesso Ilimitado</span>`;
+      } else {
+        const tipoPlano = (profile.status_assinatura || 'trial').toLowerCase();
+        let badgeColor = "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30";
+        
+        if (tipoPlano === 'ativo') badgeColor = "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+        if (tipoPlano === 'trial') badgeColor = "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30";
+
+        badgeElem.innerText = tipoPlano.toUpperCase();
+        badgeElem.className = `px-2 py-0.5 rounded text-[10px] font-bold uppercase ${badgeColor}`;
+
+        if (profile.data_validade) {
+          const hoje = new Date();
+          const dataFim = new Date(profile.data_validade);
+          const diffTempo = dataFim - hoje;
+          const diffDias = Math.ceil(diffTempo / (1000 * 60 * 60 * 24));
+
+          if (diffDias < 0) {
+            validityElem.innerHTML = `<i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-rose-400"></i> <span class="text-rose-400 font-bold">Conta Expirada</span>`;
+          } else if (diffDias === 0) {
+            validityElem.innerHTML = `<i data-lucide="clock" class="w-3.5 h-3.5 text-amber-400"></i> <span class="text-amber-400 font-bold">Expira hoje</span>`;
+          } else {
+            validityElem.innerHTML = `<i data-lucide="clock" class="w-3.5 h-3.5 text-indigo-400"></i> <span>Expira em <strong>${diffDias} dia(s)</strong></span>`;
+          }
+        } else {
+          validityElem.innerHTML = `<i data-lucide="clock" class="w-3.5 h-3.5 text-slate-400"></i> <span>Sem data definida</span>`;
+        }
+      }
+      lucide.createIcons();
     }
 
     async function login() {
@@ -446,8 +502,19 @@
       }
 
       if (data.user) {
+        // Criar conta com padrão de 7 dias de trial
+        const dataTrial = new Date();
+        dataTrial.setDate(dataTrial.getDate() + 7);
+
         await _supabase.from('profiles').insert([
-          { id: data.user.id, email: email, aprovado: false, is_admin: false }
+          { 
+            id: data.user.id, 
+            email: email, 
+            aprovado: false, 
+            is_admin: false,
+            status_assinatura: 'trial',
+            data_validade: dataTrial.toISOString()
+          }
         ]);
 
         alert("Solicitação enviada com sucesso! Seu acesso aguarda aprovação do administrador.");
@@ -505,11 +572,30 @@
           ? `<span class="px-2.5 py-1 bg-emerald-100 text-emerald-700 font-semibold rounded-full text-xs">Aprovado</span>`
           : `<span class="px-2.5 py-1 bg-amber-100 text-amber-700 font-semibold rounded-full text-xs">Pendente</span>`;
 
+        const valDate = u.data_validade ? u.data_validade.split('T')[0] : '';
+        const statusAssinatura = u.status_assinatura || 'trial';
+
         return `
           <tr class="hover:bg-slate-50">
             <td class="p-4 font-medium text-slate-900">${u.email} ${u.is_admin ? '<span class="text-xs text-indigo-600 font-bold">(Admin)</span>' : ''}</td>
             <td class="p-4">${new Date(u.created_at).toLocaleDateString('pt-BR')}</td>
             <td class="p-4 text-center">${statusBadge}</td>
+            
+            <td class="p-4 text-center">
+              ${!u.is_admin ? `
+                <select onchange="alterarPlanoUsuario('${u.id}', this.value)" class="px-2 py-1 text-xs border rounded-lg bg-white outline-none">
+                  <option value="trial" ${statusAssinatura === 'trial' ? 'selected' : ''}>Trial</option>
+                  <option value="ativo" ${statusAssinatura === 'ativo' ? 'selected' : ''}>Ativo</option>
+                </select>
+              ` : '<span class="text-xs font-semibold text-slate-500">Ilimitado</span>'}
+            </td>
+
+            <td class="p-4 text-center">
+              ${!u.is_admin ? `
+                <input type="date" value="${valDate}" onchange="alterarValidadeUsuario('${u.id}', this.value)" class="px-2 py-1 text-xs border rounded-lg outline-none bg-white">
+              ` : '<span class="text-xs text-slate-400">-</span>'}
+            </td>
+
             <td class="p-4 text-center space-x-2">
               ${!u.is_admin ? `
                 <button onclick="alterarStatusUsuario('${u.id}', ${!isAprovado})" class="${isAprovado ? 'text-amber-600' : 'text-emerald-600'} hover:underline text-xs font-semibold">
@@ -530,6 +616,35 @@
 
       if (error) alert("Erro ao atualizar usuário: " + error.message);
       else loadUsuarios();
+    }
+
+    async function alterarPlanoUsuario(id, novoPlano) {
+      const { error } = await _supabase
+        .from('profiles')
+        .update({ status_assinatura: novoPlano })
+        .eq('id', id);
+
+      if (error) alert("Erro ao atualizar tipo de plano: " + error.message);
+      else {
+        loadUsuarios();
+        if (currentUser.id === id) checkSession();
+      }
+    }
+
+    async function alterarValidadeUsuario(id, novaData) {
+      if (!novaData) return;
+      const dataIso = new Date(novaData + 'T23:59:59').toISOString();
+
+      const { error } = await _supabase
+        .from('profiles')
+        .update({ data_validade: dataIso })
+        .eq('id', id);
+
+      if (error) alert("Erro ao atualizar data de validade: " + error.message);
+      else {
+        loadUsuarios();
+        if (currentUser.id === id) checkSession();
+      }
     }
 
     async function loadAllData() {
