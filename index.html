@@ -530,7 +530,7 @@
           { 
             id: data.user.id, 
             email: email, 
-            telefone: telefone,         // Telefone capturado no cadastro
+            telefone: telefone,         
             aprovado: true,             
             is_admin: false,
             status_assinatura: 'trial', 
@@ -1178,7 +1178,7 @@
       checkboxes.forEach(cb => cb.checked = !allChecked);
     }
 
-    // MODAL DE PAGAMENTO
+    // MODAL DE PAGAMENTO (CORRIGIDO PARA EVITAR DIVERGÊNCIA E INVALID DATE)
     function abrirModalPagamento(aulaId) {
       const aula = listaAulasCache.find(a => a.id === aulaId);
       if (!aula || aula.status_pagamento === 'cancelada') return;
@@ -1191,9 +1191,14 @@
       if (aula.status_pagamento === 'pago') {
         document.getElementById('modal-pagamento-titulo').innerText = "Detalhes do Pagamento";
         document.getElementById('info-forma-pagamento').innerText = aula.forma_pagamento || 'Não informada';
-        document.getElementById('info-data-pagamento').innerText = aula.data_pagamento 
-          ? new Date(aula.data_pagamento + 'T00:00:00').toLocaleDateString('pt-BR') 
-          : '-';
+        
+        let dataFormatadaPagamento = '-';
+        if (aula.data_pagamento) {
+          const rawDate = aula.data_pagamento.split('T')[0];
+          const [ano, mes, dia] = rawDate.split('-');
+          dataFormatadaPagamento = `${dia}/${mes}/${ano}`;
+        }
+        document.getElementById('info-data-pagamento').innerText = dataFormatadaPagamento;
         
         viewQuitar.classList.add('hidden');
         viewDetalhe.classList.remove('hidden');
