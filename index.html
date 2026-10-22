@@ -1192,7 +1192,7 @@
         document.getElementById('modal-pagamento-titulo').innerText = "Detalhes do Pagamento";
         document.getElementById('info-forma-pagamento').innerText = aula.forma_pagamento || 'Não informada';
         document.getElementById('info-data-pagamento').innerText = aula.data_pagamento 
-          ? new Date(aula.data_pagamento).toLocaleDateString('pt-BR') 
+          ? new Date(aula.data_pagamento + 'T00:00:00').toLocaleDateString('pt-BR') 
           : '-';
         
         viewQuitar.classList.add('hidden');
