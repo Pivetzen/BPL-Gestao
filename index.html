@@ -88,34 +88,35 @@
     <!-- CONTEÚDO PRINCIPAL -->
     <main class="flex-1 p-4 md:p-10 overflow-y-auto">
       
-      <!-- CONTROLES E FILTROS GERAIS -->
-      <div id="bar-filters" class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <!-- CONTROLES E FILTROS GERAIS (OTIMIZADO PARA MOBILE) -->
+      <div id="bar-filters" class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-8 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <h2 class="text-xl font-bold text-slate-800" id="page-title">Dashboard</h2>
         
-        <div class="flex items-center gap-3 flex-wrap">
-          <div class="flex items-center gap-2 w-full sm:w-auto">
-            <span class="text-xs font-semibold text-slate-500 uppercase">Aluno/Paciente:</span>
-            <select id="filter-aluno-id" onchange="loadAllData()" class="px-3 py-1.5 text-sm rounded-lg border border-slate-200 outline-none w-full sm:w-auto max-w-[200px]">
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+          
+          <!-- Seleção de Aluno -->
+          <div class="flex flex-col sm:flex-row sm:items-center gap-1.5 w-full sm:w-auto">
+            <span class="text-[11px] font-bold text-slate-500 uppercase">Aluno/Paciente:</span>
+            <select id="filter-aluno-id" onchange="loadAllData()" class="w-full sm:w-auto px-3 py-2 text-sm rounded-lg border border-slate-200 outline-none bg-slate-50/50">
               <option value="">Todos os Alunos/Pacientes</option>
             </select>
           </div>
 
-          <span class="hidden sm:inline text-slate-300">|</span>
-
-          <label class="flex items-center gap-2 text-sm font-medium text-slate-600 cursor-pointer">
+          <!-- Checkbox Ver Todas -->
+          <label class="flex items-center gap-2 text-sm font-medium text-slate-600 cursor-pointer py-1">
             <input type="checkbox" id="chk-ver-todas" onchange="toggleFiltroDatas()" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
             <span>Ver todas as datas</span>
           </label>
           
-          <span class="hidden sm:inline text-slate-300">|</span>
-
-          <div class="flex items-center gap-2 flex-wrap w-full sm:w-auto">
-            <span class="text-xs font-semibold text-slate-500 uppercase">Período:</span>
-            <input type="date" id="filter-start-date" class="px-3 py-1.5 text-sm rounded-lg border border-slate-200 outline-none">
-            <span class="text-slate-400">até</span>
-            <input type="date" id="filter-end-date" class="px-3 py-1.5 text-sm rounded-lg border border-slate-200 outline-none">
-            <button onclick="loadAllData()" class="bg-indigo-600 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-indigo-700">Filtrar</button>
+          <!-- Intervalo de Datas -->
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+            <div class="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full">
+              <input type="date" id="filter-start-date" class="px-2.5 py-1.5 text-xs sm:text-sm rounded-lg border border-slate-200 outline-none w-full bg-slate-50/50">
+              <input type="date" id="filter-end-date" class="px-2.5 py-1.5 text-xs sm:text-sm rounded-lg border border-slate-200 outline-none w-full bg-slate-50/50">
+            </div>
+            <button onclick="loadAllData()" class="bg-indigo-600 text-white px-4 py-2 sm:py-1.5 rounded-lg text-sm font-semibold hover:bg-indigo-700 transition w-full sm:w-auto">Filtrar</button>
           </div>
+
         </div>
       </div>
 
@@ -276,11 +277,25 @@
         </div>
       </div>
 
-      <!-- ABA: APROVAÇÃO DE USUÁRIOS (ADMIN) -->
+      <!-- ABA: APROVAÇÃO DE USUÁRIOS (ADMIN COM FILTRO E CARDS MOBILE) -->
       <div id="tab-usuarios" class="tab-content hidden space-y-6">
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden p-6">
-          <h3 class="text-lg font-bold text-slate-800 mb-4">Gerenciamento de Solicitações e Planos</h3>
-          <div class="overflow-x-auto">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden p-4 md:p-6 space-y-4">
+          
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+            <h3 class="text-lg font-bold text-slate-800">Gerenciamento de Solicitações e Planos</h3>
+            
+            <!-- Campo de Busca/Filtro -->
+            <div class="relative w-full sm:w-64">
+              <input type="text" id="search-usuarios" oninput="filtrarEExibirUsuarios()" placeholder="Buscar por e-mail..." class="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500">
+              <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-3"></i>
+            </div>
+          </div>
+
+          <!-- Visão em Cards para Dispositivos Móveis -->
+          <div id="cards-usuarios-mobile" class="space-y-4 md:hidden"></div>
+
+          <!-- Tabela para Telas Médias e Grandes -->
+          <div class="hidden md:block overflow-x-auto">
             <table class="w-full text-left border-collapse">
               <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold">
                 <tr>
@@ -295,6 +310,7 @@
               <tbody id="table-usuarios-body" class="divide-y divide-slate-100 text-sm"></tbody>
             </table>
           </div>
+
         </div>
       </div>
 
@@ -349,6 +365,7 @@
     let userProfile = null;
     let listaAlunosCache = [];
     let listaAulasCache = [];
+    let listaUsuariosCache = [];
 
     function parseLocalDateTime(dateStr) {
       if (!dateStr) return '-';
@@ -402,7 +419,6 @@
       if (session) {
         currentUser = session.user;
 
-        // Buscar perfil e dados de validade do usuário
         const { data: profile } = await _supabase
           .from('profiles')
           .select('*')
@@ -419,7 +435,6 @@
           return;
         }
 
-        // Atualizar interface do usuário
         document.getElementById('user-email').innerText = currentUser.email;
         renderUserStatusSidebar(profile);
 
@@ -502,7 +517,6 @@
       }
 
       if (data.user) {
-        // Criar conta com padrão de 7 dias de trial
         const dataTrial = new Date();
         dataTrial.setDate(dataTrial.getDate() + 7);
 
@@ -565,8 +579,20 @@
         return;
       }
 
+      listaUsuariosCache = usuarios || [];
+      filtrarEExibirUsuarios();
+    }
+
+    function filtrarEExibirUsuarios() {
+      const termo = (document.getElementById('search-usuarios')?.value || '').toLowerCase();
+      
+      const usuariosFiltrados = listaUsuariosCache.filter(u => 
+        u.email.toLowerCase().includes(termo)
+      );
+
+      // Renderizar Tabela Desktop
       const tbody = document.getElementById('table-usuarios-body');
-      tbody.innerHTML = usuarios.map(u => {
+      tbody.innerHTML = usuariosFiltrados.map(u => {
         const isAprovado = u.aprovado;
         const statusBadge = isAprovado
           ? `<span class="px-2.5 py-1 bg-emerald-100 text-emerald-700 font-semibold rounded-full text-xs">Aprovado</span>`
@@ -606,6 +632,57 @@
           </tr>
         `;
       }).join('');
+
+      // Renderizar Cards Mobile
+      const mobileContainer = document.getElementById('cards-usuarios-mobile');
+      mobileContainer.innerHTML = usuariosFiltrados.map(u => {
+        const isAprovado = u.aprovado;
+        const statusBadge = isAprovado
+          ? `<span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 font-semibold rounded-full text-[11px]">Aprovado</span>`
+          : `<span class="px-2 py-0.5 bg-amber-100 text-amber-700 font-semibold rounded-full text-[11px]">Pendente</span>`;
+
+        const valDate = u.data_validade ? u.data_validade.split('T')[0] : '';
+        const statusAssinatura = u.status_assinatura || 'trial';
+
+        return `
+          <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+              <span class="font-bold text-slate-900 text-sm truncate">${u.email}</span>
+              ${statusBadge}
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 text-xs text-slate-600">
+              <div>
+                <label class="block text-[10px] uppercase text-slate-400 font-bold mb-0.5">Plano</label>
+                ${!u.is_admin ? `
+                  <select onchange="alterarPlanoUsuario('${u.id}', this.value)" class="w-full px-2 py-1 border rounded bg-white outline-none">
+                    <option value="trial" ${statusAssinatura === 'trial' ? 'selected' : ''}>Trial</option>
+                    <option value="ativo" ${statusAssinatura === 'ativo' ? 'selected' : ''}>Ativo</option>
+                  </select>
+                ` : '<span class="font-bold text-slate-700">Admin</span>'}
+              </div>
+
+              <div>
+                <label class="block text-[10px] uppercase text-slate-400 font-bold mb-0.5">Validade</label>
+                ${!u.is_admin ? `
+                  <input type="date" value="${valDate}" onchange="alterarValidadeUsuario('${u.id}', this.value)" class="w-full px-1.5 py-1 border rounded bg-white outline-none">
+                ` : '<span class="text-slate-400">-</span>'}
+              </div>
+            </div>
+
+            <div class="pt-2 border-t border-slate-200 flex justify-between items-center text-xs">
+              <span class="text-slate-400">Solicitado: ${new Date(u.created_at).toLocaleDateString('pt-BR')}</span>
+              ${!u.is_admin ? `
+                <button onclick="alterarStatusUsuario('${u.id}', ${!isAprovado})" class="${isAprovado ? 'text-amber-600' : 'text-emerald-600'} font-bold hover:underline">
+                  ${isAprovado ? 'Bloquear' : 'Aprovar'}
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
     }
 
     async function alterarStatusUsuario(id, novoStatus) {
